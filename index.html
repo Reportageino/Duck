@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#d9b48a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>اردک اسکیت‌باز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="game"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-row">
+        <div class="hud-box" id="hud-hearts"></div>
+        <div class="hud-box"><span class="ico coin-ico"></span><b id="hud-coins">0</b></div>
+        <div class="hud-box">امتیاز <b id="hud-score">0</b></div>
+        <button class="hud-btn" id="btn-pause" aria-label="توقف">❚❚</button>
+      </div>
+      <div id="hud-progress"><div id="hud-progress-fill"></div><span id="hud-progress-duck"></span></div>
+      <div id="boss-bar" class="hidden"><span>خرس گنده</span><div class="bar"><div id="boss-bar-fill"></div></div></div>
+      <div id="toast" class="hidden"></div>
+    </div>
+
+    <!-- Screens -->
+    <div id="screen-menu" class="screen">
+      <div class="card menu-card">
+        <h1 class="title">اردکِ <span>اسکیت‌باز</span></h1>
+        <canvas id="menu-duck" width="240" height="190"></canvas>
+        <div class="menu-stats"><span class="pill">بهترین امتیاز: <b id="menu-best">0</b></span><span class="pill"><span class="ico coin-ico"></span> <b id="menu-coins">0</b></span></div>
+        <div class="btn-col">
+          <button class="btn big" id="btn-start">شروع بازی</button>
+          <button class="btn" id="btn-levels">انتخاب مرحله</button>
+          <button class="btn" id="btn-shop">فروشگاه رنگ‌ها</button>
+          <div class="btn-row">
+            <button class="btn small" id="btn-help">راهنما</button>
+            <button class="btn small" id="btn-sound">صدا: روشن</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-levels" class="screen hidden">
+      <div class="card wide">
+        <h2>انتخاب مرحله</h2>
+        <div id="level-list" class="level-list"></div>
+        <button class="btn" data-back>بازگشت</button>
+      </div>
+    </div>
+
+    <div id="screen-help" class="screen hidden">
+      <div class="card wide help">
+        <h2>راهنمای بازی</h2>
+        <div class="help-grid">
+          <div><kbd>Space</kbd> / <kbd>↑</kbd><span>پرش (نگه داری = پرش بلندتر)</span></div>
+          <div><kbd>↓</kbd><span>روی زمین: خم شدن و سُرخوردن — در هوا: حرکت نمایشی (امتیاز)</span></div>
+          <div><kbd>→</kbd> / <kbd>←</kbd><span>تندتر / آهسته‌تر (در قلمرو خرس: جابه‌جایی)</span></div>
+          <div><kbd>P</kbd> / <kbd>Esc</kbd><span>توقف</span></div>
+        </div>
+        <ul class="help-list">
+          <li>روی موبایل از دکمه‌های پایین صفحه استفاده کن.</li>
+          <li>روی سر حلزون، قورباغه‌ها و لیوان بپر تا گیج شوند. کلاه کرم مثل ترامپولین است!</li>
+          <li>روح طلایی‌ِ درخشان مهربان است و تو را به آسمان پرتاب می‌کند.</li>
+          <li>سگ مهربان یک قلب به تو می‌دهد.</li>
+          <li>خرس: از موج زمینی بپر، از عسل‌ها فرار کن، از روی حمله‌اش بپر و وقتی گیج شد روی سرش فرود بیا!</li>
+          <li>با سکه‌ها در فروشگاه رنگ شخصیت‌ها را عوض کن.</li>
+        </ul>
+        <button class="btn" data-back>بازگشت</button>
+      </div>
+    </div>
+
+    <div id="screen-shop" class="screen hidden">
+      <div class="card wide shop">
+        <div class="shop-head"><h2>فروشگاه رنگ‌ها</h2><span class="pill"><span class="ico coin-ico"></span> <b id="shop-coins">0</b></span></div>
+        <div id="shop-tabs" class="shop-tabs"></div>
+        <div class="shop-body">
+          <canvas id="shop-preview" width="220" height="220"></canvas>
+          <div id="shop-grid" class="shop-grid"></div>
+        </div>
+        <p id="shop-msg" class="shop-msg"></p>
+        <button class="btn" data-back>بازگشت</button>
+      </div>
+    </div>
+
+    <div id="screen-pause" class="screen hidden">
+      <div class="card">
+        <h2>توقف</h2>
+        <div class="btn-col">
+          <button class="btn big" id="btn-resume">ادامه</button>
+          <button class="btn" id="btn-restart">شروع دوباره مرحله</button>
+          <button class="btn small" id="btn-sound2">صدا: روشن</button>
+          <button class="btn" id="btn-quit">منوی اصلی</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-result" class="screen hidden">
+      <div class="card">
+        <h2 id="result-title">آفرین!</h2>
+        <canvas id="result-pic" width="200" height="170"></canvas>
+        <p id="result-text"></p>
+        <div class="result-stats">
+          <span class="pill">امتیاز: <b id="result-score">0</b></span>
+          <span class="pill"><span class="ico coin-ico"></span> +<b id="result-coins">0</b></span>
+        </div>
+        <div class="btn-col">
+          <button class="btn big" id="btn-next">مرحله بعد</button>
+          <button class="btn" id="btn-retry">دوباره</button>
+          <button class="btn" id="btn-menu">منوی اصلی</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="rotate-hint" class="hidden">📱↻ برای تجربه بهتر گوشی را افقی کن</div>
+  </div>
+
+  <!-- Touch controls -->
+  <div id="touch" class="hidden">
+    <div class="tgroup">
+      <button class="tbtn" data-key="left" aria-label="آهسته">◀</button>
+      <button class="tbtn" data-key="right" aria-label="تند">▶</button>
+    </div>
+    <div class="tgroup">
+      <button class="tbtn" data-key="down" aria-label="خم شو">▼</button>
+      <button class="tbtn jump" data-key="jump" aria-label="پرش">پرش</button>
+    </div>
+  </div>
+</div>
+
+<script src="src/assets-data.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/sprites.js"></script>
+<script src="src/draw.js"></script>
+<script src="src/levels.js"></script>
+<script src="src/player.js"></script>
+<script src="src/enemies.js"></script>
+<script src="src/boss.js"></script>
+<script src="src/game.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
