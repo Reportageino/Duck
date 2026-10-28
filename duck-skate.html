@@ -30,8 +30,8 @@ body{background-size:360px 360px;background-repeat:repeat}
 .hud-btn{pointer-events:auto;margin-inline-start:auto;width:42px;height:38px;border:2.5px solid var(--ink);border-radius:12px 9px 12px 10px;
   background:var(--yellow);font-size:15px;font-weight:900;cursor:pointer;box-shadow:2px 2px 0 rgba(31,26,28,.4);color:var(--ink)}
 #hud-progress{position:relative;margin:8px auto 0;width:min(58%,460px);height:12px;border:2.5px solid var(--ink);border-radius:10px;background:rgba(246,232,210,.7)}
-#hud-progress-fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--teal);border-radius:8px}
-#hud-progress-duck{position:absolute;top:-9px;left:0;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:var(--yellow);border:2.5px solid var(--ink)}
+#hud-progress-fill{position:absolute;inset:0;background:var(--teal);border-radius:8px;transform-origin:left center;transform:scaleX(0);will-change:transform}
+#hud-progress-duck{position:absolute;top:-9px;left:0;will-change:transform;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:var(--yellow);border:2.5px solid var(--ink)}
 #hud-progress{direction:ltr}
 #boss-bar{margin:8px auto 0;width:min(70%,520px);display:flex;align-items:center;gap:8px;font-weight:900;font-size:15px;
   background:rgba(246,232,210,.85);border:2.5px solid var(--ink);border-radius:14px;padding:3px 10px}
@@ -125,6 +125,25 @@ body.portrait #toast{font-size:13px;top:74px}
   .menu-stats{margin:2px 0 8px}h2{font-size:21px}#result-pic{width:110px;height:92px}
   .shop-grid{grid-template-columns:repeat(4,minmax(60px,1fr))}#shop-preview{width:110px;height:110px}.skin canvas{width:46px;height:40px}}
 
+/* ---------- v2: combo, power-ups, endless, upgrades ---------- */
+.hud-box.combo{background:#f6c343;font-weight:900}
+.hud-box.combo.bump{animation:bump .35s ease-out}
+@keyframes bump{40%{transform:scale(1.25) rotate(-4deg)}}
+#hud-powers{display:flex;gap:6px}
+.pw-chip{display:inline-flex;align-items:center;gap:3px;background:rgba(246,232,210,.85);border:2.5px solid var(--ink);border-radius:12px;padding:1px 8px 1px 4px;font-weight:900;font-size:14px}
+.pw-chip img{width:24px;height:24px}
+.btn.endless{background:#bfe0d8}
+.tab.up{background:#f6c343}.tab.up.on{background:var(--teal)}
+#screen-shop.upgrades #shop-preview{display:none}
+#screen-shop.upgrades .shop-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.upg{font-family:var(--font);color:var(--ink);border:2.5px solid var(--ink);border-radius:16px 12px 16px 11px;background:#fbf1de;padding:10px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:2px 2px 0 rgba(31,26,28,.35)}
+.upg.sel{background:#d8eccf}
+.upg-ico{font-size:28px;line-height:1}
+.upg b{font-size:16px}.upg-desc{font-size:12.5px;opacity:.8}
+.upg .price{font-weight:900}
+@media (prefers-reduced-motion:reduce){.hud-box.combo.bump,#menu-duck,.card,#toast{animation:none}}
+
 </style>
 
 
@@ -138,6 +157,9 @@ body.portrait #toast{font-size:13px;top:74px}
         <div class="hud-box" id="hud-hearts"></div>
         <div class="hud-box"><span class="ico coin-ico"></span><b id="hud-coins">0</b></div>
         <div class="hud-box">امتیاز <b id="hud-score">0</b></div>
+        <div class="hud-box hidden" id="hud-dist-box"><b id="hud-dist">0</b> متر</div>
+        <div class="hud-box combo hidden" id="hud-combo">کمبو ×۲</div>
+        <div id="hud-powers"></div>
         <button class="hud-btn" id="btn-pause" aria-label="توقف">❚❚</button>
       </div>
       <div id="hud-progress"><div id="hud-progress-fill"></div><span id="hud-progress-duck"></span></div>
@@ -150,10 +172,11 @@ body.portrait #toast{font-size:13px;top:74px}
       <div class="card menu-card">
         <h1 class="title">اردکِ <span>اسکیت‌باز</span></h1>
         <canvas id="menu-duck" width="240" height="190"></canvas>
-        <div class="menu-stats"><span class="pill">بهترین امتیاز: <b id="menu-best">0</b></span><span class="pill"><span class="ico coin-ico"></span> <b id="menu-coins">0</b></span></div>
+        <div class="menu-stats"><span class="pill">بهترین امتیاز: <b id="menu-best">0</b></span><span class="pill"><span class="ico coin-ico"></span> <b id="menu-coins">0</b></span><span class="pill">رکورد بی‌پایان: <b id="menu-dist">0</b> متر</span></div>
         <div class="btn-col">
           <button class="btn big" id="btn-start">شروع بازی</button>
           <button class="btn" id="btn-levels">انتخاب مرحله</button>
+          <button class="btn endless" id="btn-endless">∞ حالت بی‌پایان</button>
           <button class="btn" id="btn-shop">فروشگاه رنگ‌ها</button>
           <div class="btn-row">
             <button class="btn small" id="btn-help">راهنما</button>
@@ -186,7 +209,10 @@ body.portrait #toast{font-size:13px;top:74px}
           <li>روح طلایی‌ِ درخشان مهربان است و تو را به آسمان پرتاب می‌کند.</li>
           <li>سگ مهربان یک قلب به تو می‌دهد.</li>
           <li>خرس: از موج زمینی بپر، از عسل‌ها فرار کن، از روی حمله‌اش بپر و وقتی گیج شد روی سرش فرود بیا!</li>
-          <li>با سکه‌ها در فروشگاه رنگ شخصیت‌ها را عوض کن.</li>
+          <li>پاورآپ‌ها: 🧲 آهنربا سکه‌ها را جذب می‌کند، 🫧 سپر یک ضربه را می‌گیرد، ×۲ سکه‌ها را دوبرابر می‌کند.</li>
+          <li>سکه، پرش روی دشمن و حرکت نمایشی پشت‌سرهم «کمبو» می‌سازد و امتیاز را تا ×۵ زیاد می‌کند. آسیب دیدن کمبو را صفر می‌کند.</li>
+          <li>در حالت بی‌پایان مسیر هر بار تازه ساخته می‌شود و هرچه جلوتر بروی سریع‌تر می‌شود.</li>
+          <li>با سکه‌ها در فروشگاه رنگ شخصیت‌ها را عوض کن یا ارتقا بخر (پرش دوم، قلب چهارم، پاورآپ طولانی).</li>
         </ul>
         <button class="btn" data-back>بازگشت</button>
       </div>
@@ -211,7 +237,7 @@ body.portrait #toast{font-size:13px;top:74px}
         <div class="btn-col">
           <button class="btn big" id="btn-resume">ادامه</button>
           <button class="btn" id="btn-restart">شروع دوباره مرحله</button>
-          <button class="btn small" id="btn-sound2">صدا: روشن</button>
+          <div class="btn-row"><button class="btn small" id="btn-sound2">صدا: روشن</button><button class="btn small" id="btn-vibrate">لرزش</button></div>
           <button class="btn" id="btn-quit">منوی اصلی</button>
         </div>
       </div>
@@ -341,6 +367,9 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     drip: () => { tone(900, 0.12, 'sine', 0.12, 300); },
     win: () => { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.16, null, i * 0.13)); },
     lose: () => { [494, 440, 392, 330].forEach((f, i) => tone(f, 0.3, 'triangle', 0.15, null, i * 0.2)); },
+    power: () => { [523, 784, 1047, 1568].forEach((f, i) => tone(f, 0.12, 'triangle', 0.14, null, i * 0.05)); },
+    pop: () => { noise(0.15, 0.4, 2500, 1, 0, 'highpass'); tone(900, 0.12, 'sine', 0.15, 300); },
+    combo: () => { tone(880, 0.08, 'square', 0.1); tone(1175, 0.08, 'square', 0.1, null, 0.06); tone(1568, 0.14, 'square', 0.1, null, 0.12); },
     flag: () => { [392, 523, 659, 784].forEach((f, i) => tone(f, 0.15, 'square', 0.1, null, i * 0.09)); }
   };
   A.play = function (name) { try { SFX[name] && SFX[name](); } catch (e) { } };
@@ -479,11 +508,34 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
 
   S.current = function (name) { return S.variant(name, (G.Save && G.Save.data.sel[name]) || 0); };
 
+  // Pre-scaled copies sized to the screen: drawing a 360px image down to ~150px every frame is
+  // what made mobile GPUs struggle, so each sprite is resampled once (in steps, for crisp lines).
+  S.scaled = new Map();
+  S.clearScaled = function () { S.scaled.clear(); };
+  S.sized = function (name, skin, hPx) {
+    hPx = Math.max(8, Math.ceil(hPx / 4) * 4);
+    const key = name + ':' + skin + ':' + hPx;
+    let c = S.scaled.get(key); if (c) return c;
+    let src = S.variant(name, skin);
+    const tw = Math.max(1, Math.round(hPx * src.width / src.height));
+    while (src.height / 2 > hPx) { // halve repeatedly for quality
+      const h = document.createElement('canvas'); h.width = Math.ceil(src.width / 2); h.height = Math.ceil(src.height / 2);
+      const hx = h.getContext('2d'); hx.imageSmoothingQuality = 'high'; hx.drawImage(src, 0, 0, h.width, h.height); src = h;
+    }
+    c = document.createElement('canvas'); c.width = tw; c.height = hPx;
+    const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, tw, hPx);
+    S.scaled.set(key, c);
+    return c;
+  };
+
   /* Draw a character with its feet at (x, y). opts: h, flip, rot, sx, sy, alpha, skin */
   S.draw = function (ctx, name, x, y, opts) {
     opts = opts || {};
-    const img = opts.skin != null ? S.variant(name, opts.skin) : S.current(name);
-    const h = opts.h || G.CHARS[name].h, w = h * img.width / img.height;
+    const skin = opts.skin != null ? opts.skin : ((G.Save && G.Save.data.sel[name]) || 0);
+    const h = opts.h || G.CHARS[name].h;
+    const sc = (G.game && G.game.pxScale) || 2;
+    const img = S.sized(name, skin, h * sc * Math.max(1, opts.sy || 1));
+    const w = h * img.width / img.height;
     let flip = !!G.CHARS[name].flip; if (opts.flip) flip = !flip;
     ctx.save();
     ctx.translate(x, y - (opts.pivotUp ? h / 2 : 0));
@@ -704,6 +756,38 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       x.beginPath(); x.moveTo(9, 4); x.lineTo(22, 4); x.lineTo(18, 30); x.lineTo(12, 30); x.closePath(); D.crayon(x, '#e66a52', pat, 0.35); D.ink(x, 2.6);
       x.beginPath(); x.arc(15, 39, 4.5, 0, 7); D.crayon(x, '#e66a52', pat, 0.35); D.ink(x, 2.4);
     });
+    // --- power-ups & effects ---
+    const badge = (x, pat, col) => { x.beginPath(); x.arc(22, 22, 19, 0, 7); D.crayon(x, col, pat, 0.3); D.ink(x, 2.6); };
+    prefab('pw_magnet', 44, 44, (x, pat) => {
+      badge(x, pat, '#fbe9d0');
+      x.beginPath(); x.arc(22, 20, 10, Math.PI, 0); x.lineTo(32, 31); x.lineTo(26, 31); x.lineTo(26, 20); x.arc(22, 20, 4, 0, Math.PI, true); x.lineTo(18, 31); x.lineTo(12, 31); x.closePath();
+      D.crayon(x, '#e2554a', pat, 0.3); D.ink(x, 2);
+      x.fillStyle = '#d9dde0'; x.fillRect(12.5, 27, 5, 4); x.fillRect(26.5, 27, 5, 4);
+    });
+    prefab('pw_shield', 44, 44, (x, pat) => {
+      badge(x, pat, '#d9eef2');
+      x.beginPath(); x.moveTo(22, 9); x.lineTo(33, 13); x.quadraticCurveTo(33, 28, 22, 35); x.quadraticCurveTo(11, 28, 11, 13); x.closePath();
+      D.crayon(x, '#7cc2d6', pat, 0.3); D.ink(x, 2);
+      x.beginPath(); x.moveTo(17, 21); x.lineTo(21, 25); x.lineTo(28, 16); D.ink(x, 2.4);
+    });
+    prefab('pw_x2', 44, 44, (x, pat) => {
+      badge(x, pat, '#f6c343');
+      x.fillStyle = INK; x.font = '900 17px Vazirmatn, Tahoma, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('×2', 22, 23);
+    });
+    prefab('bubble', 120, 120, (x) => {
+      x.beginPath(); x.arc(60, 60, 54, 0, 7);
+      const g = x.createRadialGradient(46, 42, 8, 60, 60, 56); g.addColorStop(0, 'rgba(255,255,255,.35)'); g.addColorStop(0.75, 'rgba(160,215,235,.18)'); g.addColorStop(1, 'rgba(120,190,220,.4)');
+      x.fillStyle = g; x.fill(); x.strokeStyle = 'rgba(31,26,28,.65)'; x.lineWidth = 2.4; x.setLineDash([10, 6]); x.stroke(); x.setLineDash([]);
+      x.beginPath(); x.arc(60, 60, 42, -2.6, -1.9); x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 4; x.lineCap = 'round'; x.stroke();
+    });
+    prefab('glow', 170, 170, (x) => {
+      const g = x.createRadialGradient(85, 85, 12, 85, 85, 84); g.addColorStop(0, 'rgba(255,224,110,.6)'); g.addColorStop(1, 'rgba(255,224,110,0)');
+      x.fillStyle = g; x.fillRect(0, 0, 170, 170);
+    });
+    prefab('trunk', 90, 260, (x, pat) => {
+      x.beginPath(); x.moveTo(8, 250); x.quadraticCurveTo(26, 120, 50, 0); x.lineTo(80, 0); x.quadraticCurveTo(50, 130, 30, 258); x.closePath();
+      D.crayon(x, '#9c6a3c', pat, 0.5); D.ink(x);
+    });
   };
 
   // hand-drawn ink line between points with a tiny wobble (deterministic)
@@ -738,6 +822,9 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     frogs: 'قورباغه‌ها می‌پرن! وقتی بالا رفتن از زیرشون رد شو',
     glass: 'لیوانی قطره پرت می‌کنه — بپر یا خم شو. روی لبه‌اش هم می‌شه پرید!',
     worm: 'کرم کش میاد! وقتی کوتاهه بپر — کلاهش مثل فنره',
+    magnet: 'آهنربا! سکه‌های اطراف خودشون میان سمتت 🧲',
+    shield: 'سپر حبابی! یک ضربه رو به‌جات تحمل می‌کنه 🫧',
+    x2: 'سکه دوبرابر! هر سکه دو تا حساب می‌شه',
     boss: 'قلمرو خرس! از حمله‌ها فرار کن و وقتی گیج شد روی سرش بپر!'
   };
 
@@ -764,12 +851,12 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       .flat(640, [arc(40, 6, 170, 280), c(420, 4)])
       .flat(820, [tip(0, 'speed'), ['bench', 260], c(190, 6, 78, 40)])
       .slope(240, -40, [c(60, 3, 40)]).flat(300, [c(40, 5)]).slope(240, 40)
-      .flat(760, [['crate', 220], arc(150, 4, 140, 140), ['crate', 470], c(480, 2, 90, 30)])
-      .flat(640, [tip(60, 'dog'), ['dog', 330]])
+      .flat(760, [['power', 60, { kind: 'shield', alt: 30 }], ['crate', 220], arc(150, 4, 140, 140), ['crate', 470], c(480, 2, 90, 30)])
+      .flat(640, [tip(60, 'dog'), ['dog', 330], ['power', 560, { kind: 'magnet', alt: 40 }]])
       .flat(760, [tip(0, 'trick'), ['sign', 220], ['cone', 560], arc(490, 5, 130, 160)])
       .kicker(160, 60)
       .flat(720, [['star', 70, { alt: 210 }], arc(10, 5, 160, 200), ['cone', 470]])
-      .flat(820, [['rail', 140], c(110, 6, 84, 40), ['cone', 620]])
+      .flat(820, [['power', 40, { kind: 'x2', alt: 40 }], ['rail', 140], c(110, 6, 84, 40), ['cone', 620]])
       .flat(760, [['cone', 220], ['cone', 268], arc(160, 6, 170, 220), ['sign', 580]])
       .flat(640, [['crate', 200], ['crate', 420], c(180, 2, 92, 30), c(400, 2, 92, 30)])
       .flat(900, [c(80, 6), ['flag', 520]]);
@@ -779,19 +866,19 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
   function level2() {
     const b = new Builder();
     b.flat(560, [tip(80, 'snail'), c(220, 4)])
-      .flat(760, [['snail', 520], arc(430, 5, 130, 180)])
+      .flat(760, [['power', 150, { kind: 'shield', alt: 30 }], ['snail', 520], arc(430, 5, 130, 180)])
       .slope(300, -50, [c(80, 4, 30)]).flat(420, [['log', 220], arc(150, 4, 120, 150)]).slope(300, 50)
       .flat(560, [tip(120, 'gap'), c(300, 3)]).gap(120)
       .flat(640, [['snail', 380], arc(-160, 4, 120, 150)])
       .flat(760, [tip(0, 'branch'), ['branch', 330], c(290, 4, 18)])
       .slope(360, -70).flat(300, [['rock', 160]]).slope(360, 70, [c(60, 5, 30)])
-      .flat(500, [['snail', 300]]).gap(150)
+      .flat(500, [['power', 100, { kind: 'magnet', alt: 40 }], ['snail', 300]]).gap(150)
       .flat(700, [arc(-200, 5, 140, 200), ['log', 380], ['star', 380, { alt: 210 }]])
       .flat(700, [['snail', 260], ['snail', 520], arc(170, 4, 120, 150), arc(430, 4, 120, 150)])
       .kicker(150, 55)
       .flat(500, [['branch', 300]]).gap(130)
       .flat(700, [arc(-210, 5, 150, 200), ['dog', 360], ['checkpoint', 560]])
-      .flat(800, [['log', 220], ['branch', 520], c(480, 3, 18)])
+      .flat(800, [['power', 80, { kind: 'x2', alt: 40 }], ['log', 220], ['branch', 520], c(480, 3, 18)])
       .slope(300, -60).flat(260, [['snail', 140]]).slope(300, 60).gap(140)
       .flat(700, [arc(-210, 5, 150, 200), ['rock', 300], ['snail', 600]])
       .flat(760, [['log', 200], ['log', 250], arc(130, 6, 170, 220), ['branch', 600]])
@@ -806,16 +893,16 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       .flat(800, [['ghost', 480, { alt: 70, amp: 55, per: 2.4 }], c(400, 3, 150)])
       .flat(760, [['ghost', 300, { alt: 80, amp: 60, per: 2.0, ph: 1.2 }], ['ghost', 620, { alt: 70, amp: 60, per: 2.0 }]])
       .flat(800, [tip(0, 'fghost'), ['fghost', 360, { alt: 60 }], c(380, 10, 360, 44), ['star', 900, { alt: 380 }]])
-      .flat(700, [tip(80, 'frogs'), ['frogs', 420], arc(340, 4, 120, 150)])
+      .flat(700, [tip(80, 'frogs'), ['power', 200, { kind: 'shield', alt: 30 }], ['frogs', 420], arc(340, 4, 120, 150)])
       .flat(800, [['hopfrogs', 380, { per: 2.2 }], c(560, 3)])
       .flat(700, [['hopfrogs', 300, { per: 1.9, ph: 0.8 }], ['cone', 620]])
       .flat(700, [['dog', 360], c(100, 4), ['checkpoint', 560]])
       .flat(860, [tip(0, 'glass'), ['glass', 560, { range: 70 }], c(250, 4)])
       .flat(700, [['frogs', 260], arc(180, 4, 120, 150), ['sign', 560]])
-      .flat(860, [tip(0, 'worm'), ['worm', 520, { per: 2.6 }], c(300, 3)])
+      .flat(860, [tip(0, 'worm'), ['power', 120, { kind: 'magnet', alt: 40 }], ['worm', 520, { per: 2.6 }], c(300, 3)])
       .flat(760, [['worm', 300, { per: 2.2, ph: 1.1 }], ['star', 300, { alt: 280 }], ['snail', 650]])
       .kicker(150, 55)
-      .flat(900, [['glass', 420, { range: 60 }], ['ghost', 760, { alt: 100, amp: 45, per: 2.2 }]])
+      .flat(900, [['power', 120, { kind: 'x2', alt: 40 }], ['glass', 420, { range: 60 }], ['ghost', 760, { alt: 100, amp: 45, per: 2.2 }]])
       .flat(760, [['hopfrogs', 260, { per: 2.0 }], ['worm', 600, { per: 2.4, ph: 0.5 }]])
       .flat(700, [['fghost', 260, { alt: 60 }], c(280, 10, 360, 44)])
       .flat(500, [['dog', 200], ['checkpoint', 380]])
@@ -831,16 +918,69 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     b.flat(600, [tip(80, 'boss'), c(260, 5)])
       .flat(700, [['snail', 300], ['ghost', 600, { alt: 80, amp: 50, per: 2.2 }]])
       .flat(700, [['frogs', 260], arc(180, 4, 120, 150), ['worm', 560, { per: 2.4 }]])
-      .flat(500, [['dog', 300]])
+      .flat(500, [['dog', 300], ['power', 440, { kind: 'shield', alt: 30 }]])
       .flat(2600, [['arena', 200]]);
     return b;
   }
 
+  /* ---------- endless mode: random sections, harder the further you go ---------- */
+  G.Builder = Builder;
+  G.Endless = {
+    def: { name: 'حالت بی‌پایان', sub: 'تا کجا می‌تونی بری؟', theme: 'endless', speed: [310, 560], endless: true },
+    create(seed) {
+      const b = new Builder(); b.rnd = (G.Draw ? G.Draw.rng(seed) : Math.random);
+      b.flat(700, [c(260, 5)]); b.sinceDog = 0; b.sincePow = 0; b.last = '';
+      return b;
+    },
+    // append sections until the builder reaches `upto`
+    extend(b, upto) {
+      const r = b.rnd, start = b.ents.length;
+      while (b.x < upto) {
+        const d = Math.min(1, b.x / 30000);               // difficulty 0..1
+        const pick = (arr) => arr[Math.floor(r() * arr.length)];
+        const opts = ['cones', 'crates', 'kicker', 'hill', 'sign', 'snail', 'bench', 'rail', 'coinsky'];
+        if (b.x > 2500) opts.push('gap', 'ghost', 'frogs', 'branch', 'log');
+        if (b.x > 6000) opts.push('hopfrogs', 'worm', 'glass', 'fghost', 'combo2', 'gap');
+        if (b.x > 14000) opts.push('combo3', 'hopfrogs', 'worm', 'ghost2');
+        let k = pick(opts); if (k === b.last) k = pick(opts); b.last = k;
+        const sp = 260 + (1 - d) * 200 + r() * 140;     // breathing room between sections
+        b.flat(sp, r() < 0.5 ? [c(40, 3 + Math.floor(r() * 3), r() < 0.3 ? 120 : 26)] : []);
+        switch (k) {
+          case 'cones': b.flat(520, r() < 0.4 + d * 0.4 ? [['cone', 180], ['cone', 228], arc(110, 6, 170, 220)] : [['cone', 220], arc(150, 4, 120, 150)]); break;
+          case 'crates': b.flat(560, [['crate', 160], ['crate', 400], c(130, 2, 92, 30), c(370, 2, 92, 30)]); break;
+          case 'kicker': b.kicker(150, 50 + r() * 15, [c(20, 3, 30, 40)]); b.flat(520, [arc(30, 6, 170, 260), r() < 0.25 ? ['star', 120, { alt: 220 }] : ['coins', 400, { n: 3, alt: 26, sp: 42 }]]); break;
+          case 'hill': { const h = 40 + r() * 40; b.slope(260, -h, [c(60, 3, 36)]).flat(300, [r() < 0.5 ? ['rock', 150] : ['coins', 60, { n: 5, alt: 26, sp: 42 }]]).slope(260, h); break; }
+          case 'sign': b.flat(560, [['sign', 280], c(210, 4, 18)]); break;
+          case 'branch': b.flat(560, [['branch', 280], c(210, 4, 18)]); break;
+          case 'log': b.flat(520, [['log', 220], arc(150, 4, 120, 150)]); break;
+          case 'snail': b.flat(620, [['snail', 380], r() < d ? ['snail', 560] : ['coins', 100, { n: 3, alt: 26, sp: 42 }], arc(290, 4, 120, 150)]); break;
+          case 'bench': b.flat(560, [['bench', 120], c(80, 6, 78, 40)]); break;
+          case 'rail': b.flat(560, [['rail', 120], c(80, 6, 84, 40)]); break;
+          case 'coinsky': b.flat(560, [arc(40, 8, 200, 420), ['star', 250, { alt: 260 }]]); break;
+          case 'gap': { const g = 100 + d * 70 + r() * 30; b.flat(260, [arc(170, 5, 150, g + 160)]).gap(g).flat(300); break; }
+          case 'ghost': b.flat(620, [['ghost', 360, { alt: 70 + r() * 30, amp: 50 + r() * 15, per: 1.8 + r() * 0.6 }]]); break;
+          case 'ghost2': b.flat(820, [['ghost', 300, { alt: 80, amp: 60, per: 2, ph: 1 }], ['ghost', 620, { alt: 70, amp: 55, per: 1.9 }]]); break;
+          case 'frogs': b.flat(560, [['frogs', 320], arc(240, 4, 120, 150)]); break;
+          case 'hopfrogs': b.flat(640, [['hopfrogs', 360, { per: 1.8 + r() * 0.5, ph: r() * 2 }]]); break;
+          case 'worm': b.flat(640, [['worm', 380, { per: 2 + r() * 0.6, ph: r() * 2 }]]); break;
+          case 'glass': b.flat(760, [['glass', 520, { range: 50 }], c(200, 4)]); break;
+          case 'fghost': b.flat(700, [['fghost', 260, { alt: 60 }], c(280, 10, 360, 44)]); break;
+          case 'combo2': b.flat(760, [['cone', 220], ['sign', 520], arc(150, 4, 120, 150)]); break;
+          case 'combo3': b.flat(900, [['snail', 300], ['ghost', 600, { alt: 80, amp: 50, per: 2 }], ['cone', 820]]); break;
+        }
+        b.sinceDog += 1; b.sincePow += 1;
+        if (b.sinceDog > 9 + d * 4) { b.sinceDog = 0; b.flat(480, [['dog', 260]]); }
+        if (b.sincePow > 4 + r() * 3) { b.sincePow = 0; b.flat(200, [['power', 100, { kind: pick(['magnet', 'shield', 'x2', 'magnet']), alt: 36 }]]); }
+      }
+      return b.ents.splice(start);
+    }
+  };
+
   G.LEVELS = [
-    { name: 'پارک اسکیت', sub: 'آموزش پرش، خم شدن و سکه‌ها', theme: 'park', speed: [255, 300], build: level1 },
-    { name: 'مسیر جنگلی', sub: 'شیب، چاله، شاخه و حلزون', theme: 'forest', speed: [290, 345], build: level2 },
-    { name: 'چالش شخصیت‌ها', sub: 'روح، قورباغه، لیوانی و کرم', theme: 'meadow', speed: [305, 360], build: level3 },
-    { name: 'قلمرو خرس', sub: 'نبرد نهایی با خرس گنده', theme: 'bear', speed: [300, 310], build: level4 }
+    { name: 'پارک اسکیت', sub: 'آموزش پرش، خم شدن و سکه‌ها', theme: 'park', speed: [285, 335], build: level1 },
+    { name: 'مسیر جنگلی', sub: 'شیب، چاله، شاخه و حلزون', theme: 'forest', speed: [320, 380], build: level2 },
+    { name: 'چالش شخصیت‌ها', sub: 'روح، قورباغه، لیوانی و کرم', theme: 'meadow', speed: [335, 395], build: level3 },
+    { name: 'قلمرو خرس', sub: 'نبرد نهایی با خرس گنده', theme: 'bear', speed: [330, 340], build: level4 }
   ];
 })();
 
@@ -859,7 +999,18 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       this.inv = 0; this.hurtT = 0; this.trick = 0; this.trickRot = 0;
       this.squash = 0; this.dead = false; this.deadT = 0; this.prevBottom = y;
       this.lastSafeX = x; this.airTime = 0; this.grindT = 0; this.wheel = 0;
-      this.hearts = 3; this.maxHearts = 3; this.bounceLock = 0;
+      const up = (G.Save && G.Save.data.up) || {};
+      this.maxHearts = up.heart ? 4 : 3; this.hearts = this.maxHearts; this.bounceLock = 0;
+      this.canDouble = !!up.double; this.doubled = false;
+      this.pwMul = up.longpw ? 1.5 : 1;
+      this.pw = { magnet: 0, x2: 0 }; this.shield = false; this.pwMax = { magnet: 8, x2: 10 };
+    }
+    power(kind, w) {
+      G.Audio.play('power');
+      if (kind === 'shield') this.shield = true;
+      else { this.pwMax[kind] = (kind === 'magnet' ? 8 : 10) * this.pwMul; this.pw[kind] = this.pwMax[kind]; }
+      if (!(w.seenPw = w.seenPw || {})[kind]) { w.seenPw[kind] = true; G.UI.toast(G.TIPS[kind], 2.4); }
+      else w.texts.push({ text: { magnet: 'آهنربا!', shield: 'سپر!', x2: 'سکه ×۲!' }[kind], x: this.x, y: this.y - 100, life: 1 });
     }
     get h() { return this.crouch ? 32 : 54; }
     box() { return { x: this.x - 22, y: this.y - this.h, w: 44, h: this.h }; }
@@ -870,6 +1021,7 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       if (this.dead) { this.deadT += dt; this.vy += GRAV * dt; this.y += this.vy * dt; this.x += this.vx * dt; this.trickRot += dt * 8; return; }
       this.inv = Math.max(0, this.inv - dt); this.hurtT = Math.max(0, this.hurtT - dt); this.bounceLock = Math.max(0, this.bounceLock - dt);
       this.squash = Math.max(0, this.squash - dt * 4);
+      this.pw.magnet = Math.max(0, this.pw.magnet - dt); this.pw.x2 = Math.max(0, this.pw.x2 - dt);
 
       // ---- horizontal speed ----
       let target, accel;
@@ -889,6 +1041,9 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       this.jumpBuf = Math.max(0, this.jumpBuf - dt);
       this.coyote = Math.max(0, this.coyote - dt);
       if (this.jumpBuf > 0 && (this.onGround || this.coyote > 0)) { this.jump(); G.Audio.play('jump'); w.puff(this.x - 20, this.y, 4); }
+      else if (inp.jumpPressed && this.canDouble && !this.onGround && !this.doubled && this.airTime > 0.05 && this.bounceLock <= 0) {
+        this.jump(600); this.doubled = true; this.trick = 0; this.trickRot = 0; G.Audio.play('jump'); w.puff(this.x, this.y, 6);  // double jump upgrade
+      }
 
       // ---- crouch / trick ----
       this.crouch = this.onGround && inp.down;
@@ -948,7 +1103,7 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     safeX(w, ox) { return this.support === 'ground' ? this.x : this.lastSafeX; }
     leave() { this.onGround = false; this.coyote = this.vy >= 0 ? 0.09 : 0; this.support = null; }
     land(w, y, sup) {
-      this.y = y; this.onGround = true; this.support = sup; this.vy = 0; this.squash = 1;
+      this.y = y; this.onGround = true; this.support = sup; this.vy = 0; this.squash = 1; this.doubled = false;
       if (this.trick > 0) { this.trick = 0; this.trickRot = 0; w.addScore(10, this.x, this.y - 80); }
       else if (this.trickDone) { w.addScore(30, this.x, this.y - 80); G.Audio.play('trickOk'); w.toastSmall('حرکت نمایشی! +۳۰'); }
       this.trickDone = false;
@@ -970,8 +1125,14 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       // little shadow
       const gr = w.groundAt(this.x);
       if (gr && !this.dead) { const d = Math.max(0, gr.y - this.y); ctx.fillStyle = 'rgba(60,40,25,' + (0.22 * Math.max(0.2, 1 - d / 300)) + ')'; ctx.beginPath(); ctx.ellipse(this.x, gr.y + 2, 40 * Math.max(0.4, 1 - d / 400), 6, 0, 0, 7); ctx.fill(); }
+      if (this.pw.magnet > 0 && !this.dead) { // rotating dashed magnet aura
+        ctx.save(); ctx.translate(this.x, this.y - 40); ctx.rotate(w.time * 2); ctx.setLineDash([8, 10]);
+        ctx.strokeStyle = this.pw.magnet < 2 && Math.floor(this.pw.magnet * 6) % 2 ? 'rgba(226,85,74,.2)' : 'rgba(226,85,74,.55)'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(0, 0, 70, 0, 7); ctx.stroke(); ctx.restore();
+      }
       G.Sprites.draw(ctx, 'duck', this.x, this.y, { sx, sy, rot, pivotUp: pivot });
       ctx.globalAlpha = 1;
+      if (this.shield && !this.dead) G.Draw.put(ctx, 'bubble', this.x, this.y - 36 + Math.sin(w.time * 5) * 2, { center: true, s: 0.95 + Math.sin(w.time * 7) * 0.03 });
     }
   }
   G.Player = Player;
@@ -994,7 +1155,14 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
   // ---------- pickups ----------
   class Coin extends Ent {
     constructor(d, w) { super(d, w); this.y = d.y; this.bob = Math.random() * 6; }
-    update(dt) { this.t += dt; }
+    update(dt, w) {
+      this.t += dt;
+      const p = w.player;
+      if (p.pw.magnet > 0 && !p.dead) {           // magnet power-up pulls coins in
+        const dx = p.x - this.x, dy = (p.y - 34) - this.y, d = Math.hypot(dx, dy);
+        if (d < 260 || this.pulled) { this.pulled = true; const v = Math.min(d, (700 + Math.abs(p.vx)) * dt); this.x += dx / d * v; this.y += dy / d * v; }
+      }
+    }
     box() { return { x: this.x - 14, y: this.y - 14, w: 28, h: 28 }; }
     touch(w) { this.alive = false; w.collectCoin(this); }
     draw(ctx) { const s = Math.cos(this.t * 4 + this.bob); D().put(ctx, 'coin', this.x, this.y, { center: true, sx: Math.max(0.15, Math.abs(s)) }); }
@@ -1005,6 +1173,18 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     box() { return { x: this.x - 18, y: this.y - 18, w: 36, h: 36 }; }
     touch(w) { this.alive = false; w.collectStar(this); }
     draw(ctx) { D().put(ctx, 'star', this.x, this.y + Math.sin(this.t * 3) * 5, { center: true, rot: Math.sin(this.t * 2) * 0.2, s: 1.1 }); }
+  }
+
+  class Power extends Ent {   // power-up bubble: magnet / shield / x2
+    constructor(d, w) { super(d, w); this.y = this.gy - (d.alt || 40) - 22; }
+    update(dt) { this.t += dt; }
+    box() { return { x: this.x - 22, y: this.y - 22, w: 44, h: 44 }; }
+    touch(w) { this.alive = false; w.player.power(this.kind, w); w.sparkles(this.x, this.y, 8); }
+    draw(ctx) {
+      const b = Math.sin(this.t * 3) * 5;
+      D().put(ctx, 'glow', this.x, this.y + b, { center: true, s: 0.45, alpha: 0.8 });
+      D().put(ctx, 'pw_' + this.kind, this.x, this.y + b, { center: true, rot: Math.sin(this.t * 2) * 0.15 });
+    }
   }
 
   // ---------- static hazards ----------
@@ -1046,9 +1226,7 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
         ctx.beginPath(); ctx.moveTo(this.x - 44, this.bottom - 60); ctx.lineTo(this.x - 44, -20); ctx.moveTo(this.x + 44, this.bottom - 60); ctx.lineTo(this.x + 44, -20); D().ink(ctx, 2.2);
         D().put(ctx, 'signboard', this.x, this.bottom + 2, { rot: sway });
       } else {
-        ctx.beginPath(); ctx.moveTo(this.x + 78, this.bottom - 26); ctx.quadraticCurveTo(this.x + 96, this.bottom - 140, this.x + 120, -30);
-        ctx.lineTo(this.x + 150, -30); ctx.quadraticCurveTo(this.x + 120, this.bottom - 130, this.x + 80, this.bottom - 14);
-        D().crayon(ctx, '#9c6a3c', G.game.pat, 0.5); D().ink(ctx);
+        D().put(ctx, 'trunk', this.x + 100, this.bottom - 6, { sy: (this.bottom + 40) / 260 });
         D().put(ctx, 'branch', this.x, this.bottom + 6, { rot: sway });
       }
     }
@@ -1111,9 +1289,7 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     }
     draw(ctx) {
       ctx.save(); ctx.globalAlpha = this.fade;
-      const g = ctx.createRadialGradient(this.x, this.y - 48, 10, this.x, this.y - 48, 80);
-      g.addColorStop(0, 'rgba(255,224,110,.55)'); g.addColorStop(1, 'rgba(255,224,110,0)');
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(this.x, this.y - 48, 80, 0, 7); ctx.fill();
+      D().put(ctx, 'glow', this.x, this.y - 48, { center: true, s: 1 + Math.sin(this.t * 4) * 0.06 });
       S().draw(ctx, 'ghost', this.x, this.y, { rot: Math.sin(this.t * 2.4) * 0.08 });
       for (let i = 0; i < 4; i++) { const a = this.t * 1.6 + i * 1.57; D().put(ctx, 'star', this.x + Math.cos(a) * 60, this.y - 48 + Math.sin(a) * 50, { center: true, s: 0.4 }); }
       ctx.restore();
@@ -1203,7 +1379,7 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     }
   }
 
-  const MAP = { coin: Coin, star: Star, cone: Prop, log: Prop, rock: Prop, crate: Crate, bench: Bench, rail: Bench, sign: Hanger, branch: Hanger,
+  const MAP = { coin: Coin, star: Star, power: Power, cone: Prop, log: Prop, rock: Prop, crate: Crate, bench: Bench, rail: Bench, sign: Hanger, branch: Hanger,
     snail: Snail, frogs: Frogs, hopfrogs: Frogs, ghost: Ghost, fghost: FriendlyGhost, dog: Dog, glass: Glass, worm: Worm,
     tip: Trigger, flag: Trigger, arena: Trigger, checkpoint: Trigger };
   G.makeEnt = function (d, w) { const C = MAP[d.type]; return C ? new C(d, w) : null; };
@@ -1377,10 +1553,16 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
 
 </script>
 <script>
-/* Core game: world state, update loop, collisions, camera and rendering. */
+/* Core game: world state, update loop, collisions, camera and rendering.
+   Performance notes:
+   - the kraft paper is a CSS background behind a transparent canvas (no full-screen fill per frame)
+   - hills, background props and the ground (with its crayon texture) are rasterised once into
+     512px-wide chunks and only blitted afterwards
+   - physics uses variable time-steps split into small sub-steps (smooth on 60/90/120/144 Hz)
+   - resolution adapts automatically if the device can't hold a smooth frame rate */
 (function () {
   const G = window.G = window.G || {};
-  const H = 540;
+  const H = 540, CW = 512, PAD = 2;
 
   /* ---------------- save data ---------------- */
   const KEY = 'duckskate.v1';
@@ -1388,8 +1570,9 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     data: null,
     load() {
       let d = null; try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) { }
-      const def = { best: 0, wallet: 0, unlocked: 1, owned: {}, sel: {}, sound: true, tipsSeen: {} };
+      const def = { best: 0, bestDist: 0, wallet: 0, unlocked: 1, owned: {}, sel: {}, sound: true, vibrate: true, up: {} };
       this.data = Object.assign(def, d || {});
+      if (!this.data.up) this.data.up = {};
       Object.keys(G.CHARS).forEach(c => { if (!this.data.owned[c]) this.data.owned[c] = [0]; if (this.data.sel[c] == null) this.data.sel[c] = 0; });
     },
     save() { try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) { } }
@@ -1413,140 +1596,171 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
   window.addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) { e.preventDefault(); I.set(k, false); } });
   window.addEventListener('blur', () => { I.reset(); if (G.game.state === 'play') G.game.pause(); });
 
+  const THEMES = {
+    park:    { ground: ['#c9cdc6', '#9fb2b6'], hill: '#cfe0c0', mid: ['treeRound', 'lamp', 'lamp', 'fence', 'house', 'bush'], near: ['grass', 'flower', 'grass'] },
+    forest:  { ground: ['#b2cf93', '#86ad6c'], hill: '#a6c79a', mid: ['pine', 'pine', 'treeRound', 'pine', 'bush'], near: ['grass', 'mushroom', 'grass', 'flower'], dense: true },
+    meadow:  { ground: ['#d3df9f', '#a9c26f'], hill: '#dfe6a0', mid: ['treeRound', 'bush', 'house', 'treeRound', 'fence'], near: ['flower', 'grass', 'flower', 'mushroom'] },
+    bear:    { ground: ['#ddb47a', '#c08d52'], hill: '#d9c09a', mid: ['pine', 'pine', 'treeRound', 'bush'], near: ['grass', 'mushroom', 'grass'] },
+    endless: { ground: ['#d6d9a6', '#adbb7c'], hill: '#e2d7a6', mid: ['treeRound', 'pine', 'lamp', 'house', 'bush', 'fence'], near: ['flower', 'grass', 'mushroom', 'grass'] }
+  };
+
   /* ---------------- the game ---------------- */
   const game = G.game = {
     state: 'menu', W: 960, t: 0, camX: 0, camY: 0, shakeT: 0, sessionScore: 0,
+    quality: 1, chunks: new Map(), fpsWin: [],
 
     init(canvas) {
-      this.canvas = canvas; this.ctx = canvas.getContext('2d');
-      this.pat = G.Draw.paperPattern(this.ctx);
-      this.bgPat = G.Draw.paperPattern(this.ctx, 0.75);
-      let last = performance.now(), acc = 0;
-      const STEP = 1 / 120;
+      this.canvas = canvas; this.ctx = canvas.getContext('2d', { alpha: true });
+      let last = performance.now();
       const loop = (now) => {
-        let dt = Math.min(0.05, (now - last) / 1000); last = now;
+        const raw = (now - last) / 1000; last = now;
+        const dt = Math.min(0.05, raw);
         if (this.state === 'play' || this.state === 'ending') {
-          acc += dt * (G.debug.timeScale || 1);
-          let n = 0;
-          while (acc >= STEP && n < 40) { this.update(STEP); acc -= STEP; n++; I.jumpPressed = false; I.downPressed = false; }
-        } else acc = 0;
-        if (this.world) this.render(); else this.renderIdle(dt);
+          // variable step, split into <= 1/120 s sub-steps: no judder on any refresh rate
+          const T = dt * (G.debug.timeScale || 1), n = Math.max(1, Math.ceil(T / (1 / 120)));
+          for (let i = 0; i < n; i++) { this.update(T / n); I.jumpPressed = false; I.downPressed = false; }
+          this.watchFps(raw);
+        }
+        if (this.world) { this.render(); G.UI.hud(this.world); } else this.renderIdle();
         requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);
     },
 
+    // lower the internal resolution if frames keep taking too long (never raises again, so no flicker)
+    watchFps(raw) {
+      if (raw > 0.25) return;
+      const f = this.fpsWin; f.push(raw);
+      if (f.length < 90) return;
+      const avg = f.reduce((a, b) => a + b, 0) / f.length; f.length = 0;
+      if (avg > 0.0215 && this.quality > 0.56) { this.quality = Math.max(0.55, this.quality - 0.15); G.UI.layout(); }
+    },
+
     resize(W, pxW, pxH) {
       this.W = W; this.canvas.width = pxW; this.canvas.height = pxH;
-      this.scale = pxW / W;
-      this.pat = G.Draw.paperPattern(this.ctx); this.bgPat = G.Draw.paperPattern(this.ctx, 0.75);
+      this.scale = pxW / W; this.pxScale = this.scale;
+      this.chunks.clear(); G.Sprites.clearScaled();
       if (this.world && this.world.mode === 'arena') this.layoutArena();
     },
 
     /* ---------- level setup ---------- */
+    newWorld(idx, def) {
+      const w = { idx, def, ground: [], ents: [], platforms: [], particles: [], texts: [], bossEnts: [],
+        length: 0, score: 0, coins: 0, stars: 0, mode: 'run', boss: null, time: 0, finished: false, combo: 0, comboT: 0, mult: 1 };
+      Object.assign(w, worldApi);
+      w.theme = THEMES[def.theme];
+      this.chunks.clear();
+      return w;
+    },
     startLevel(idx, opts) {
       opts = opts || {};
       const def = G.LEVELS[idx], b = def.build();
-      const w = this.world = {
-        idx, def, ground: b.ground, ents: [], platforms: [], particles: [], texts: [], bossEnts: [],
-        length: 0, score: 0, coins: 0, stars: 0, mode: 'run', boss: null, time: 0, finished: false
-      };
-      Object.assign(w, worldApi);
+      const w = this.world = this.newWorld(idx, def);
+      w.ground = b.ground;
       w.length = (b.ents.find(e => e.type === 'flag' || e.type === 'arena') || { x: b.x }).x;
-      // expand coin patterns into single coins
-      b.ents.forEach(d => {
-        if (d.type === 'coins') for (let i = 0; i < d.n; i++) { const x = d.x + i * d.sp; w.add({ type: 'coin', x, y: w.groundY(x) - d.alt - 16 }); }
-        else if (d.type === 'arc') for (let i = 0; i < d.n; i++) { const k = d.n > 1 ? i / (d.n - 1) : 0.5, x = d.x + k * d.w; w.add({ type: 'coin', x, y: w.groundY(x) - 30 - Math.sin(k * Math.PI) * (d.alt - 30) }); }
-        else w.add(d);
-      });
-      w.ents.sort((a, b) => a.x - b.x);
+      w.addDefs(b.ents);
       let sx = 120;
       if (opts.atArena) { const a = w.ents.find(e => e.type === 'arena'); opts.startX = a.x - 380; }
       if (opts.startX) { // continue from a checkpoint / the boss arena
         sx = opts.startX; w.checkpoint = sx;
         w.ents.forEach(e => { if (e.x < sx + 200 && e.type !== 'arena') { e.alive = false; e.done = true; } });
       }
+      this.begin(w, sx, opts.sessionScore || 0);
+    },
+    startEndless() {
+      const def = G.Endless.def, w = this.world = this.newWorld(-1, def);
+      w.endless = true; w.length = Infinity;
+      w.gen = G.Endless.create((Math.random() * 1e9) | 0);
+      w.ground = w.gen.ground;
+      w.addDefs(G.Endless.extend(w.gen, 5000).concat(w.gen.ents.splice(0)));
+      this.begin(w, 120, 0);
+      G.UI.toast('حالت بی‌پایان: هر چی جلوتر بری سریع‌تر می‌شه!', 2.6);
+    },
+    begin(w, sx, sessionScore) {
       w.player = new G.Player(sx, w.groundY(sx));
-      w.player.vx = def.speed[0] * 0.6;
+      w.player.vx = w.def.speed[0] * 0.6;
       this.camX = sx - this.W * 0.3; this.camY = 0;
-      this.buildDecor(w);
-      this.sessionScore = opts.sessionScore || 0;
-      this.state = 'play'; this.t = 0;
+      w.decorGen = { r: G.Draw.rng((w.idx + 2) * 97 + 13), far: -200, hill: -400, mid: 0, near: 0 };
+      w.decor = { far: [], mid: [], near: [], hills: [] };
+      this.extendDecor(w, w.endless ? 6000 : w.length + 3000);
+      this.sessionScore = sessionScore;
+      this.state = 'play'; this.t = 0; this.fpsWin.length = 0;
       I.reset();
       G.UI.onLevelStart(w);
       G.Audio.startMusic('happy');
     },
 
-    buildDecor(w) {
-      const r = G.Draw.rng(w.idx * 97 + 13), th = w.def.theme, L = w.length + 3000;
-      const far = [], mid = [], near = [], hills = [];
-      for (let x = -200; x < L * 0.25 + 1400; x += 260 + r() * 380) far.push({ x, y: 50 + r() * 120, s: 0.6 + r() * 0.5 });
-      for (let x = -400; x < L * 0.45 + 1400; x += 300 + r() * 260) hills.push({ x, h: 60 + r() * 90, w: 260 + r() * 260 });
-      const midSet = { park: ['treeRound', 'lamp', 'lamp', 'fence', 'house', 'bush'], forest: ['pine', 'pine', 'treeRound', 'pine', 'bush'], meadow: ['treeRound', 'bush', 'house', 'treeRound', 'fence'], bear: ['pine', 'pine', 'treeRound', 'bush'] }[th];
-      for (let x = 0; x < L * 0.7 + 1400; x += (th === 'forest' ? 120 : 180) + r() * 220) mid.push({ x, k: midSet[Math.floor(r() * midSet.length)], s: 0.62 + r() * 0.25 });
-      const nearSet = { park: ['grass', 'flower', 'grass'], forest: ['grass', 'mushroom', 'grass', 'flower'], meadow: ['flower', 'grass', 'flower', 'mushroom'], bear: ['grass', 'mushroom', 'grass'] }[th];
-      for (let x = 0; x < L; x += 70 + r() * 150) near.push({ x, k: nearSet[Math.floor(r() * nearSet.length)], s: 0.7 + r() * 0.4 });
-      w.decor = { far, mid, near, hills };
-      w.colors = { park: ['#c9cdc6', '#9fb2b6'], forest: ['#b2cf93', '#86ad6c'], meadow: ['#d3df9f', '#a9c26f'], bear: ['#ddb47a', '#c08d52'] }[th];
-      w.hillColor = { park: '#cfe0c0', forest: '#a6c79a', meadow: '#dfe6a0', bear: '#d9c09a' }[th];
+    // background props are generated on demand (endless mode keeps extending them)
+    extendDecor(w, upto) {
+      const g = w.decorGen, r = g.r, th = w.theme, d = w.decor;
+      while (g.far < upto * 0.2 + 1400) { d.far.push({ x: g.far, y: 50 + r() * 120, s: 0.6 + r() * 0.5 }); g.far += 260 + r() * 380; }
+      while (g.hill < upto * 0.4 + 1400) { d.hills.push({ x: g.hill, h: 60 + r() * 90, w: 260 + r() * 260 }); g.hill += 300 + r() * 260; }
+      while (g.mid < upto * 0.65 + 1400) { d.mid.push({ x: g.mid, k: th.mid[Math.floor(r() * th.mid.length)], s: 0.62 + r() * 0.25 }); g.mid += (th.dense ? 120 : 180) + r() * 220; }
+      while (g.near < upto) { d.near.push({ x: g.near, k: th.near[Math.floor(r() * th.near.length)], s: 0.7 + r() * 0.4 }); g.near += 70 + r() * 150; }
+      g.upto = upto;
     },
 
     /* ---------- update ---------- */
     update(dt) {
       const w = this.world, p = w.player;
       this.t += dt; w.time += dt;
-      if (this.state === 'play' || (this.state === 'ending' && !w.finished)) p.update(dt, I, w);
-      else if (this.state === 'ending') { p.vx = Math.max(0, p.vx - 300 * dt); p.update(dt, { }, Object.assign(Object.create(w), { speedAt: () => 0 })); }
+      if (this.state === 'play') p.update(dt, I, w);
+      else if (this.state === 'ending') { if (!w.stopWorld) w.stopWorld = Object.assign(Object.create(w), { speedAt: () => 0 }); p.update(dt, {}, w.stopWorld); }
 
-      // entities near the camera
-      const L = this.camX - 400, R = this.camX + this.W + 500;
-      for (const e of w.ents) {
-        if (!e.alive) continue;
-        if (e.x < L - 600) { if (e.type !== 'snail') continue; }
-        if (e.x > R) break;
-        e.update(dt, w);
+      // endless: keep generating track ahead and forget what is far behind
+      if (w.endless) {
+        if (w.gen.x < p.x + 4500) w.addDefs(G.Endless.extend(w.gen, p.x + 6000));
+        if (w.decorGen.upto < p.x + 5000) this.extendDecor(w, p.x + 8000);
+        while (w.ground.length > 2 && w.ground[0].x1 < this.camX - 3000) w.ground.shift();
+      }
+
+      // entities near the camera (ents are sorted by x -> binary search the window start)
+      const L = this.camX - 600, R = this.camX + this.W + 500;
+      const ents = w.ents;
+      for (let i = w.lowerIdx(L); i < ents.length; i++) {
+        const e = ents[i]; if (e.x > R) break;
+        if (e.alive) e.update(dt, w);
       }
       for (const e of w.bossEnts) e.update(dt, w);
       if (w.boss) w.boss.update(dt);
       if (!p.dead && this.state === 'play') this.collide(w, p);
-      w.bossEnts = w.bossEnts.filter(e => e.alive);
-      if (w.time % 2 < dt) w.ents = w.ents.filter(e => e.alive || e.type === 'tip');
+      if (w.bossEnts.length) w.bossEnts = w.bossEnts.filter(e => e.alive);
+      w.cleanT = (w.cleanT || 0) + dt;
+      if (w.cleanT > 1.5) { w.cleanT = 0; const cut = this.camX - 1500; w.ents = w.ents.filter(e => e.alive ? e.x > cut || e.type === 'arena' : false); w.platforms = w.platforms.filter(q => q.x1 > cut); }
+
+      // combo timer
+      if (w.comboT > 0) { w.comboT -= dt; if (w.comboT <= 0) { w.combo = 0; w.mult = 1; } }
 
       // particles & texts
-      for (const q of w.particles) { q.life -= dt; q.vy += (q.g || 0) * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot = (q.rot || 0) + (q.vr || 0) * dt; }
-      w.particles = w.particles.filter(q => q.life > 0);
-      for (const t of w.texts) { t.life -= dt; t.y -= 40 * dt; }
-      w.texts = w.texts.filter(t => t.life > 0);
+      const P = w.particles;
+      for (let i = P.length - 1; i >= 0; i--) { const q = P[i]; q.life -= dt; if (q.life <= 0) { P[i] = P[P.length - 1]; P.pop(); continue; } q.vy += (q.g || 0) * dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.vr) q.rot = (q.rot || 0) + q.vr * dt; }
+      const T = w.texts;
+      for (let i = T.length - 1; i >= 0; i--) { const t = T[i]; t.life -= dt; t.y -= 40 * dt; if (t.life <= 0) T.splice(i, 1); }
 
       // camera
-      let tx;
-      if (w.mode === 'arena') tx = w.lockCamX;
-      else tx = p.x - this.W * 0.3;
-      this.camX += (tx - this.camX) * Math.min(1, dt * (w.mode === 'arena' ? 3 : 12));
+      const tx = w.mode === 'arena' ? w.lockCamX : p.x - this.W * 0.3;
+      this.camX += (tx - this.camX) * Math.min(1, dt * (w.mode === 'arena' ? 3 : 10));
       const ty = Math.min(0, p.y - 190);
       this.camY += (ty - this.camY) * Math.min(1, dt * 6);
       this.shakeT = Math.max(0, this.shakeT - dt);
 
-      // sound of wheels
       G.Audio.setRoll(p.onGround && !p.dead ? Math.min(1, Math.abs(p.vx) / 420) : 0);
-
       if (p.dead && p.deadT > 1.4 && this.state === 'play') this.endRun(false);
-      G.UI.hud(w);
     },
 
     collide(w, p) {
       const pb = p.box();
       const ov = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-      const L = p.x - 300, R = p.x + 300;
-      for (const e of w.ents) {
-        if (e.x > R + 200) break;
-        if (!e.alive || e.x < L - 300) continue;
+      const ents = w.ents, R = p.x + 500;
+      for (let i = w.lowerIdx(p.x - 600); i < ents.length; i++) {
+        const e = ents[i]; if (e.x > R) break;
+        if (!e.alive) continue;
         const b = e.box(); if (!b || !ov(pb, b)) continue;
         if (e.touch) { e.touch(w); continue; }
         if (e.friendly) continue;
         if (e.stomp && p.vy > 0 && p.prevBottom <= b.y + 16 && p.bounceLock <= 0) {
-          p.jump(560); p.bounceLock = 0.15; G.Audio.play('stomp'); w.puff(p.x, b.y, 5);
-          e.onStomp(w); continue;
+          p.jump(560); p.bounceLock = 0.15; p.doubled = false; G.Audio.play('stomp'); w.puff(p.x, b.y, 5);
+          w.bumpCombo(); e.onStomp(w); continue;
         }
         if (e.harm) this.hurt(w, p, e.type);
       }
@@ -1555,7 +1769,7 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       if (bear && bear.state !== 'defeat') {
         const b = bear.box();
         if (b && ov(pb, b)) {
-          if (bear.vulnerable && p.vy > 0 && p.prevBottom <= b.y + 26) { bear.stomped(); p.jump(760); p.bounceLock = 0.3; }
+          if (bear.vulnerable && p.vy > 0 && p.prevBottom <= b.y + 26) { bear.stomped(); p.jump(760); p.bounceLock = 0.3; w.bumpCombo(); }
           else if (bear.state !== 'hurt' && bear.state !== 'dizzy') {
             const wasInv = p.inv > 0; this.hurt(w, p);
             if (!wasInv && !p.dead) { // knock the duck up and away (over the bear if pinned against the wall)
@@ -1570,29 +1784,41 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     hurt(w, p, by) {
       if (p.inv > 0 || p.dead) return;
       if (G.debug.god) { w.godHits = (w.godHits || 0) + 1; (w.hitLog = w.hitLog || []).push((by || 'bear') + '@' + Math.round(p.x)); p.inv = 0.6; return; }
+      w.combo = 0; w.mult = 1; w.comboT = 0;
+      if (p.shield) { // the bubble shield takes the hit instead
+        p.shield = false; p.inv = 1.0; G.Audio.play('pop'); w.sparkles(p.x, p.y - 40, 10); this.shake(5);
+        w.texts.push({ text: 'سپر ترکید!', x: p.x, y: p.y - 100, life: 1 }); return;
+      }
       p.hearts--; p.inv = 1.5; p.hurtT = 0.5; p.trick = 0; p.trickRot = 0; p.trickDone = false;
-      G.Audio.play('hurt'); this.shake(8); w.puff(p.x, p.y - 30, 6);
+      G.Audio.play('hurt'); this.shake(8); w.puff(p.x, p.y - 30, 6); G.UI.vibrate(70);
       w.hits = (w.hits || 0) + 1;
       if (p.hearts <= 0) this.die(w, p);
       else { p.jump(300); }
     },
-    die(w, p) { p.hearts = 0; p.dead = true; p.vy = -620; p.vx = w.mode === 'arena' ? 0 : 120; G.Audio.stopMusic(); G.Audio.play('lose'); },
+    die(w, p) { p.hearts = 0; p.dead = true; p.vy = -620; p.vx = w.mode === 'arena' ? 0 : 120; G.Audio.stopMusic(); G.Audio.play('lose'); G.UI.vibrate([60, 60, 120]); },
 
     shake(n) { this.shakeT = 0.25; this.shakeN = n; },
     togglePause() { if (this.state === 'play') this.pause(); else if (this.state === 'paused') this.resume(); },
     pause() { if (this.state !== 'play') return; this.state = 'paused'; G.Audio.paused = true; G.Audio.setRoll(0); G.UI.show('pause'); },
     resume() { if (this.state !== 'paused') return; this.state = 'play'; G.Audio.paused = false; I.reset(); G.UI.show(null); },
 
-    endRun(win, extra) {
+    endRun(win) {
       const w = this.world; if (this.state === 'result') return;
       this.state = 'result'; G.Audio.setRoll(0);
-      const p = w.player;
+      const p = w.player, sv = G.Save.data;
       let bonus = 0;
       if (win) bonus = p.hearts * 100 + (w.mode === 'arena' ? 1000 : 0);
       w.score += bonus;
-      const total = this.sessionScore + w.score;
-      const sv = G.Save.data;
       sv.wallet += w.coins;
+      if (w.endless) {
+        const dist = w.dist(), rec = dist > (sv.bestDist || 0);
+        if (rec) sv.bestDist = dist;
+        if (w.score > sv.best) sv.best = w.score;
+        G.Save.save();
+        G.UI.result({ endless: true, win: false, idx: -1, score: w.score, coins: w.coins, dist, record: rec, best: sv.bestDist });
+        return;
+      }
+      const total = this.sessionScore + w.score;
       if (win && w.idx + 2 > sv.unlocked) sv.unlocked = Math.min(G.LEVELS.length, w.idx + 2);
       if (total > sv.best) sv.best = total;
       G.Save.save();
@@ -1607,57 +1833,117 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       if (w.boss) w.boss.home = w.arenaR - 130;
     },
 
-    /* ---------- rendering ---------- */
-    renderIdle(dt) {
-      const ctx = this.ctx; ctx.setTransform(this.scale, 0, 0, this.scale, 0, 0);
-      this.t += dt; this.idleX = (this.idleX || 0) + dt * 40;
-      ctx.save(); ctx.translate(-this.idleX, 0); ctx.fillStyle = this.pat; ctx.fillRect(this.idleX, 0, this.W, H); ctx.restore();
+    /* ---------- cached layer chunks ---------- */
+    LAYERS: {
+      hills:  { k: 0.4,  ky: 0.25, y0: 270, h: 182 },   // bands trimmed to where content actually is
+      mid:    { k: 0.65, ky: 0.5,  y0: 228, h: 236 },
+      ground: { k: 1,    ky: 1,    y0: 300, h: 264 }
+    },
+    chunk(name, i) {
+      const key = name + i; let c = this.chunks.get(key);
+      if (c) { this.chunks.delete(key); this.chunks.set(key, c); return c; }   // LRU touch
+      const L = this.LAYERS[name], s = this.scale, x0 = i * CW - PAD, x1 = (i + 1) * CW + PAD;
+      c = document.createElement('canvas');
+      c.width = Math.ceil((CW + PAD * 2) * s); c.height = Math.ceil(L.h * s);
+      const x = c.getContext('2d'); x.scale(s, s); x.translate(-x0, -L.y0);
+      const pat = G.Draw.paperPattern(x), w = this.world, D = G.Draw;
+      if (name === 'hills') {
+        x.beginPath();
+        for (const h of w.decor.hills) if (h.x + h.w / 2 > x0 && h.x - h.w / 2 < x1) { x.moveTo(h.x - h.w / 2, 448); x.quadraticCurveTo(h.x, 448 - h.h * 2.2, h.x + h.w / 2, 448); }
+        D.crayon(x, w.theme.hill, pat, 0.45); D.ink(x, 2.6);
+      } else if (name === 'mid') {
+        for (const m of w.decor.mid) if (m.x > x0 - 110 && m.x < x1 + 110) D.put(x, m.k, m.x, 452, { s: m.s, alpha: 0.9 });
+      } else this.drawGround(x, pat, w, x0, x1);
+      this.chunks.set(key, c);
+      while (this.chunks.size > 22) this.chunks.delete(this.chunks.keys().next().value);
+      return c;
+    },
+    drawLayer(ctx, name, cx, cy) {
+      const L = this.LAYERS[name], px = cx * L.k, py = cy * L.ky;
+      const i0 = Math.floor(px / CW), i1 = Math.floor((px + this.W) / CW);
+      // blit 1:1 at whole device pixels: a straight copy, no resampling
+      const s = this.scale;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      for (let i = i0; i <= i1; i++) {
+        if (!this.chunks.has(name + i)) this.built++;
+        ctx.drawImage(this.chunk(name, i), Math.round((i * CW - PAD - px) * s), Math.round((L.y0 - py) * s));
+      }
+      ctx.setTransform(s, 0, 0, s, 0, 0);
+    },
+    // build at most one upcoming chunk per frame, so scrolling never has to wait for one
+    prefetch(cx) {
+      if (this.built) return;
+      for (const name of ['ground', 'mid', 'hills']) {
+        const L = this.LAYERS[name], i = Math.floor((cx * L.k + this.W) / CW) + 1;
+        if (!this.chunks.has(name + i)) { this.chunk(name, i); return; }
+      }
     },
 
+    drawGround(ctx, pat, w, x0, x1) {
+      const D = G.Draw, B = 600, gr = w.ground;
+      let a = 0; while (a < gr.length && gr[a].x1 < x0 - 10) a++;
+      let b = a; while (b < gr.length && gr[b].x0 < x1 + 10) b++;
+      if (b <= a) return;
+      ctx.beginPath();
+      for (let i = a; i < b; i++) { const s = gr[i]; ctx.moveTo(s.x0, s.y0); ctx.lineTo(s.x1, s.y1); ctx.lineTo(s.x1, B); ctx.lineTo(s.x0, B); ctx.closePath(); }
+      D.crayon(ctx, w.theme.ground[0], pat, 0.5);
+      ctx.beginPath();
+      for (let i = a; i < b; i++) { const s = gr[i]; ctx.moveTo(s.x0, s.y0 + 14); ctx.lineTo(s.x1, s.y1 + 14); ctx.lineTo(s.x1, s.y1 + 24); ctx.lineTo(s.x0, s.y0 + 24); ctx.closePath(); }
+      ctx.fillStyle = w.theme.ground[1]; ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.beginPath();
+      for (let i = a; i < b; i++) {
+        const s = gr[i], prev = gr[i - 1], next = gr[i + 1];
+        if (!prev || prev.x1 < s.x0 - 1) { ctx.moveTo(s.x0, B); ctx.lineTo(s.x0, s.y0); }
+        else if (prev.y1 < s.y0 - 1) { ctx.moveTo(s.x0, prev.y1); ctx.lineTo(s.x0, s.y0); }
+        else ctx.moveTo(s.x0, s.y0);
+        ctx.lineTo(s.x1, s.y1);
+        if (!next || next.x0 > s.x1 + 1) ctx.lineTo(s.x1, B);
+      }
+      D.ink(ctx, 3.4);
+      for (let i = a; i < b; i++) {
+        const s = gr[i], next = gr[i + 1];
+        if (next && next.x0 > s.x1 + 1) {
+          ctx.beginPath(); ctx.rect(s.x1, s.y1 + 6, next.x0 - s.x1, B - s.y1); ctx.fillStyle = 'rgba(70,45,30,.35)'; ctx.fill();
+          ctx.beginPath(); for (let k = 0; k < 4; k++) { const yy = s.y1 + 30 + k * 26; ctx.moveTo(s.x1 + 14, yy); ctx.lineTo(next.x0 - 14, yy + 6); } D.ink(ctx, 1.4);
+        }
+      }
+      for (const n of w.decor.near) { if (n.x < x0 - 30 || n.x > x1 + 30) continue; const g = w.groundAt(n.x); if (g) D.put(ctx, n.k, n.x, g.y + 3, { s: n.s }); }
+    },
+
+    /* ---------- rendering ---------- */
+    renderIdle() { if (!this.idleCleared) { this.ctx.setTransform(1, 0, 0, 1, 0, 0); this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); this.idleCleared = true; } },
+
     render() {
-      const ctx = this.ctx, w = this.world, W = this.W;
+      this.idleCleared = false;
+      const ctx = this.ctx, w = this.world, W = this.W, D = G.Draw;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       ctx.setTransform(this.scale, 0, 0, this.scale, 0, 0);
       let sx = 0, sy = 0;
       if (this.shakeT > 0) { const k = this.shakeT / 0.25 * this.shakeN; sx = (Math.random() - 0.5) * k; sy = (Math.random() - 0.5) * k; }
       const cx = this.camX + sx, cy = this.camY + sy;
 
-      // paper
-      ctx.save(); ctx.translate(-cx * 0.15, -cy * 0.15); ctx.fillStyle = this.bgPat; ctx.fillRect(cx * 0.15 - 20, cy * 0.15 - 20, W + 40, H + 40); ctx.restore();
+      // clouds (few, prefab blits)
+      const fx = cx * 0.2, fy = cy * 0.1;
+      for (const c of w.decor.far) if (c.x > fx - 200 && c.x < fx + W + 100) D.put(ctx, 'cloud', c.x - fx, c.y - fy + Math.sin(this.t * 0.4 + c.x) * 4, { s: c.s });
+      this.built = 0;
+      this.drawLayer(ctx, 'hills', cx, cy);
+      this.drawLayer(ctx, 'mid', cx, cy);
+      this.drawLayer(ctx, 'ground', cx, cy);
+      this.prefetch(cx, cy);
 
-      // far: clouds + hills
-      const D = G.Draw;
-      ctx.save(); ctx.translate(-cx * 0.2, -cy * 0.1);
-      for (const c of w.decor.far) if (c.x > cx * 0.2 - 200 && c.x < cx * 0.2 + W + 100) D.put(ctx, 'cloud', c.x, c.y + Math.sin(this.t * 0.4 + c.x) * 4, { s: c.s });
-      ctx.restore();
-      ctx.save(); ctx.translate(-cx * 0.4, -cy * 0.25);
-      ctx.beginPath(); ctx.moveTo(cx * 0.4 - 50, 400);
-      for (const h of w.decor.hills) {
-        if (h.x + h.w < cx * 0.4 - 300 || h.x > cx * 0.4 + W + 300) continue;
-        ctx.moveTo(h.x - h.w / 2, 400); ctx.quadraticCurveTo(h.x, 400 - h.h * 2, h.x + h.w / 2, 400);
-      }
-      D.crayon(ctx, w.hillColor, this.pat, 0.45); D.ink(ctx, 2.6);
-      ctx.restore();
-
-      // mid layer
-      ctx.save(); ctx.translate(-cx * 0.65, -cy * 0.5);
-      for (const m of w.decor.mid) { const vx = m.x; if (vx < cx * 0.65 - 200 || vx > cx * 0.65 + W + 200) continue; D.put(ctx, m.k, vx, 452, { s: m.s, alpha: 0.9 }); }
-      ctx.restore();
-
-      // world
       ctx.save(); ctx.translate(-cx, -cy);
-      this.drawGround(ctx, w, cx, cy);
-      for (const n of w.decor.near) { if (n.x < cx - 60 || n.x > cx + W + 60) continue; const g = w.groundAt(n.x); if (g) D.put(ctx, n.k, n.x, g.y + 3, { s: n.s }); }
-      if (w.def.theme === 'bear' && w.arenaX) D.put(ctx, 'cave', w.arenaX + 1500, w.groundY(w.arenaX) + 4, { s: 0.9 });
-      else if (w.def.theme === 'bear') { const a = w.ents.find(e => e.type === 'arena'); if (a) D.put(ctx, 'cave', a.x + 1500, w.groundY(a.x) + 4, { s: 0.9 }); }
-
-      for (const e of w.ents) { if (!e.alive || e.x < cx - 400) continue; if (e.x > cx + W + 300) break; e.draw(ctx, w); }
+      if (w.def.theme === 'bear') { const ax = w.arenaX || (w.ents.find(e => e.type === 'arena') || {}).x; if (ax) D.put(ctx, 'cave', ax + 1500, w.groundY(ax) + 4, { s: 0.9 }); }
+      const ents = w.ents, Lx = cx - 400, Rx = cx + W + 300;
+      for (let i = w.lowerIdx(Lx - 300); i < ents.length; i++) { const e = ents[i]; if (e.x > Rx) break; if (e.alive && e.x > Lx) e.draw(ctx, w); }
       if (w.boss) w.boss.draw(ctx);
       for (const e of w.bossEnts) e.draw(ctx, w);
       w.player.draw(ctx, w);
       this.drawParticles(ctx, w);
-      ctx.font = '900 20px Vazirmatn, Tahoma, sans-serif'; ctx.textAlign = 'center';
-      for (const t of w.texts) { ctx.globalAlpha = Math.min(1, t.life * 2); ctx.lineWidth = 4; ctx.strokeStyle = '#fbf1de'; ctx.strokeText(t.text, t.x, t.y); ctx.fillStyle = '#1f1a1c'; ctx.fillText(t.text, t.x, t.y); }
-      ctx.globalAlpha = 1;
+      if (w.texts.length) {
+        ctx.font = '900 20px Vazirmatn, Tahoma, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#fbf1de'; ctx.fillStyle = '#1f1a1c';
+        for (const t of w.texts) { ctx.globalAlpha = Math.min(1, t.life * 2); ctx.strokeText(t.text, t.x, t.y); ctx.fillText(t.text, t.x, t.y); }
+        ctx.globalAlpha = 1;
+      }
       ctx.restore();
 
       if (w.mode === 'arena' && w.boss && w.boss.state === 'dizzy') {
@@ -1665,45 +1951,10 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       }
     },
 
-    drawGround(ctx, w, cx, cy) {
-      const D = G.Draw, B = H - cy + 40;
-      const segs = w.ground.filter(s => s.x1 > cx - 50 && s.x0 < cx + this.W + 50);
-      // fill
-      ctx.beginPath();
-      for (const s of segs) { ctx.moveTo(s.x0, s.y0); ctx.lineTo(s.x1, s.y1); ctx.lineTo(s.x1, B); ctx.lineTo(s.x0, B); ctx.closePath(); }
-      D.crayon(ctx, w.colors[0], this.pat, 0.5);
-      // darker strip under the edge
-      ctx.beginPath();
-      for (const s of segs) { ctx.moveTo(s.x0, s.y0 + 14); ctx.lineTo(s.x1, s.y1 + 14); ctx.lineTo(s.x1, s.y1 + 24); ctx.lineTo(s.x0, s.y0 + 24); ctx.closePath(); }
-      ctx.fillStyle = w.colors[1]; ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1;
-      // ink
-      ctx.beginPath();
-      for (let i = 0; i < segs.length; i++) {
-        const s = segs[i], prev = w.ground[w.ground.indexOf(s) - 1];
-        if (!prev || prev.x1 < s.x0 - 1) { ctx.moveTo(s.x0, B); ctx.lineTo(s.x0, s.y0); }       // pit wall on the left
-        else if (prev.y1 < s.y0 - 1) { ctx.moveTo(s.x0, prev.y1); ctx.lineTo(s.x0, s.y0); }    // step down (end of a kicker)
-        else ctx.moveTo(s.x0, s.y0);
-        ctx.lineTo(s.x1, s.y1);
-        const next = w.ground[w.ground.indexOf(s) + 1];
-        if (!next || next.x0 > s.x1 + 1) ctx.lineTo(s.x1, B);
-      }
-      D.ink(ctx, 3.4);
-      // pits: dark shading
-      for (let i = 0; i < segs.length; i++) {
-        const s = segs[i], next = w.ground[w.ground.indexOf(s) + 1];
-        if (next && next.x0 > s.x1 + 1) {
-          ctx.beginPath(); ctx.rect(s.x1, s.y1 + 6, next.x0 - s.x1, B - s.y1);
-          ctx.fillStyle = 'rgba(70,45,30,.35)'; ctx.fill();
-          ctx.beginPath(); for (let k = 0; k < 4; k++) { const yy = s.y1 + 30 + k * 26; ctx.moveTo(s.x1 + 14, yy); ctx.lineTo(next.x0 - 14, yy + 6); } D.ink(ctx, 1.4);
-        }
-      }
-    },
-
     drawParticles(ctx, w) {
       const D = G.Draw;
       for (const q of w.particles) {
-        const a = Math.min(1, q.life / q.max * 1.5);
-        ctx.globalAlpha = a;
+        ctx.globalAlpha = Math.min(1, q.life / q.max * 1.5);
         if (q.kind === 'puff') { ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (1.6 - q.life / q.max), 0, 7); ctx.fillStyle = 'rgba(246,232,210,.9)'; ctx.fill(); ctx.strokeStyle = 'rgba(31,26,28,.5)'; ctx.lineWidth = 1.5; ctx.stroke(); }
         else if (q.kind === 'spark') { ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q.x - q.vx * 0.03, q.y - q.vy * 0.03); ctx.strokeStyle = '#f6a623'; ctx.lineWidth = 2.5; ctx.stroke(); }
         else if (q.kind === 'heart') D.put(ctx, 'heart', q.x, q.y, { center: true, s: q.s || 0.8 });
@@ -1718,8 +1969,18 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
   /* ---------- world helper API (mixed into each world object) ---------- */
   const worldApi = {
     add(d) { const e = G.makeEnt(d, this); if (e) this.ents.push(e); return e; },
+    // turn level definitions (incl. coin lines / arcs) into entities, keep the list sorted by x
+    addDefs(defs) {
+      defs.forEach(d => {
+        if (d.type === 'coins') for (let i = 0; i < d.n; i++) { const x = d.x + i * d.sp; this.add({ type: 'coin', x, y: this.groundY(x) - d.alt - 16 }); }
+        else if (d.type === 'arc') for (let i = 0; i < d.n; i++) { const k = d.n > 1 ? i / (d.n - 1) : 0.5, x = d.x + k * d.w; this.add({ type: 'coin', x, y: this.groundY(x) - 30 - Math.sin(k * Math.PI) * (d.alt - 30) }); }
+        else this.add(d);
+      });
+      this.ents.sort((a, b) => a.x - b.x);
+    },
     spawn(e) { this.ents.push(e); this.ents.sort((a, b) => a.x - b.x); },
     spawnBoss(e) { this.bossEnts.push(e); },
+    lowerIdx(x) { const a = this.ents; let lo = 0, hi = a.length; while (lo < hi) { const m = (lo + hi) >> 1; if (a[m].x < x) lo = m + 1; else hi = m; } return lo; },
     groundAt(x) {
       const g = this.ground; let lo = 0, hi = g.length - 1;
       while (lo <= hi) {
@@ -1730,12 +1991,25 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       return null;
     },
     groundY(x) { const g = this.groundAt(x); return g ? g.y : G.GY; },
-    speedAt(x) { const s = this.def.speed, k = Math.max(0, Math.min(1, x / this.length)); return s[0] + (s[1] - s[0]) * k; },
-    addScore(n, x, y, silent) { this.score += n; if (!silent && x != null) this.texts.push({ text: '+' + n, x, y, life: 0.9 }); },
-    collectCoin(c) { this.coins++; this.score += 10; G.Audio.play('coin'); this.sparkles(c.x, c.y, 3); },
-    collectStar(s) { this.coins += 10; this.stars++; this.score += 100; G.Audio.play('star'); this.sparkles(s.x, s.y, 10); this.texts.push({ text: '⭐ +۱۰ سکه', x: s.x, y: s.y - 30, life: 1.2 }); },
+    speedAt(x) {
+      const s = this.def.speed;
+      if (this.endless) return Math.min(s[1], s[0] + x / 120);
+      const k = Math.max(0, Math.min(1, x / this.length)); return s[0] + (s[1] - s[0]) * k;
+    },
+    dist() { return Math.max(0, Math.round(this.player.x / 50)); },
+    bumpCombo() {
+      this.combo++; this.comboT = 2.6;
+      const m = Math.min(5, 1 + Math.floor(this.combo / 8));
+      if (m > this.mult) { this.mult = m; G.Audio.play('combo'); this.texts.push({ text: 'کمبو ×' + G.UI.fa(m) + '!', x: this.player.x, y: this.player.y - 110, life: 1.1 }); }
+    },
+    addScore(n, x, y, silent) { n *= this.mult; this.score += n; if (!silent && x != null) this.texts.push({ text: '+' + n, x, y, life: 0.9 }); },
+    collectCoin(c) {
+      const k = this.player.pw.x2 > 0 ? 2 : 1;
+      this.coins += k; this.bumpCombo(); this.score += 10 * k * this.mult; G.Audio.play('coin'); this.sparkles(c.x, c.y, 2);
+    },
+    collectStar(s) { this.coins += 10; this.stars++; this.bumpCombo(); this.score += 100 * this.mult; G.Audio.play('star'); this.sparkles(s.x, s.y, 10); this.texts.push({ text: '⭐ +۱۰ سکه', x: s.x, y: s.y - 30, life: 1.2 }); },
     puff(x, y, n) { for (let i = 0; i < n; i++) this.particles.push({ kind: 'puff', x: x + (Math.random() - 0.5) * 20, y: y - 4, vx: (Math.random() - 0.5) * 80 - 40, vy: -Math.random() * 50, r: 4 + Math.random() * 5, life: 0.5, max: 0.5 }); },
-    spark(x, y) { if (Math.random() < 0.5) this.particles.push({ kind: 'spark', x, y, vx: -150 - Math.random() * 150, vy: -100 - Math.random() * 150, g: 900, life: 0.3, max: 0.3 }); },
+    spark(x, y) { if (Math.random() < 0.3) this.particles.push({ kind: 'spark', x, y, vx: -150 - Math.random() * 150, vy: -100 - Math.random() * 150, g: 900, life: 0.3, max: 0.3 }); },
     sparkles(x, y, n) { for (let i = 0; i < n; i++) { const a = Math.random() * 7; this.particles.push({ kind: 'star', x, y, vx: Math.cos(a) * 160, vy: Math.sin(a) * 160, g: 200, vr: 6, life: 0.6, max: 0.6 }); } },
     hearts(x, y, n) { for (let i = 0; i < n; i++) this.particles.push({ kind: 'heart', x: x + (Math.random() - 0.5) * 60, y, vx: (Math.random() - 0.5) * 40, vy: -60 - Math.random() * 60, life: 1.5, max: 1.5, s: 0.6 + Math.random() * 0.4 }); },
     splat(x, y) { for (let i = 0; i < 8; i++) this.particles.push({ kind: 'honey', x, y: y - 6, vx: (Math.random() - 0.5) * 260, vy: -100 - Math.random() * 220, g: 900, r: 3 + Math.random() * 4, life: 0.6, max: 0.6 }); },
@@ -1746,7 +2020,7 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     fellInPit() {
       const p = this.player;
       if (G.debug.god) { p.hearts++; }
-      p.hearts--; G.Audio.play('fall'); game.shake(6);
+      p.hearts--; G.Audio.play('fall'); game.shake(6); G.UI.vibrate(70); this.combo = 0; this.mult = 1;
       if (p.hearts <= 0) { game.die(this, p); p.y = G.VIEW_H + 100; return; }
       let x = p.lastSafeX - 140; while (!this.groundAt(x) && x > 0) x -= 20;
       p.x = x; p.y = this.groundY(x); p.vy = 0; p.vx = this.speedAt(x) * 0.5; p.onGround = true; p.support = 'ground'; p.inv = 1.8; p.slope = 0;
@@ -1791,6 +2065,8 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     const click = (id, fn) => $(id).addEventListener('click', () => { G.Audio.init(); G.Audio.play('click'); fn(); });
     click('btn-start', () => G.game.startLevel(0, { sessionScore: 0 }));
     click('btn-levels', () => { UI.buildLevels(); UI.show('levels'); });
+    click('btn-endless', () => G.game.startEndless());
+    click('btn-vibrate', UI.toggleVibrate);
     click('btn-shop', () => { UI.buildShop(); UI.show('shop'); });
     click('btn-help', () => UI.show('help'));
     click('btn-sound', UI.toggleSound); click('btn-sound2', UI.toggleSound);
@@ -1802,7 +2078,8 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     click('btn-menu', () => G.game.quitToMenu());
     click('btn-next', () => {
       const r = UI.last;
-      if (r.final) G.game.startLevel(0, { sessionScore: 0 });
+      if (r.endless) G.game.startEndless();
+      else if (r.final) G.game.startLevel(0, { sessionScore: 0 });
       else G.game.startLevel(r.idx + 1, { sessionScore: r.score });
     });
     document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { G.Audio.play('click'); UI.show('menu'); }));
@@ -1845,8 +2122,12 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     W = Math.round(W);
     const st = $('stage'); st.style.width = cw + 'px'; st.style.height = ch + 'px';
     st.style.marginTop = portrait ? Math.max(0, (vh - ch - 200) * 0.35) + 'px' : Math.max(0, (vh - ch) / 2) + 'px';
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    G.game.resize(W, Math.round(cw * dpr), Math.round(ch * dpr));
+    // resolution: device pixels capped (1.75x, ~2.3 MP) and lowered further if frames run slow
+    let dpr = Math.min(1.75, window.devicePixelRatio || 1);
+    const budget = 2.3e6; if (cw * ch * dpr * dpr > budget) dpr = Math.sqrt(budget / (cw * ch));
+    dpr *= G.game.quality || 1;
+    const pw = Math.round(cw * dpr), ph = Math.round(ch * dpr);
+    if (pw !== G.game.canvas.width || ph !== G.game.canvas.height || W !== G.game.W) G.game.resize(W, pw, ph);
     $('rotate-hint').classList.toggle('hidden', !(portrait && UI.isTouch && UI.cur == null));
   };
 
@@ -1864,6 +2145,8 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     const s = G.Save.data;
     $('menu-best').textContent = fa(s.best); $('menu-coins').textContent = fa(s.wallet);
     $('btn-start').textContent = s.unlocked > 1 ? 'شروع از اول' : 'شروع بازی';
+    $('menu-dist').textContent = fa(s.bestDist || 0);
+    UI.syncVibrate();
     UI.drawChar($('menu-duck'), 'duck', null, 0.86);
   };
 
@@ -1883,10 +2166,16 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     $('btn-sound').textContent = $('btn-sound2').textContent = on ? '🔊 صدا: روشن' : '🔇 صدا: خاموش';
   };
 
+  UI.toggleVibrate = function () { const s = G.Save.data; s.vibrate = !s.vibrate; G.Save.save(); UI.syncVibrate(); UI.vibrate(40); };
+  UI.syncVibrate = function () { const b = $('btn-vibrate'); if (b) { b.textContent = G.Save.data.vibrate ? '📳 لرزش: روشن' : '📴 لرزش: خاموش'; b.classList.toggle('hidden', !('vibrate' in navigator)); } };
+  UI.vibrate = function (p) { try { if (G.Save.data.vibrate && navigator.vibrate) navigator.vibrate(p); } catch (e) { } };
+
   /* ---------- in-game ---------- */
   UI.onLevelStart = function (w) {
     UI.hudCache = {}; UI.show(null); UI.bossBar(false);
-    UI.toast('مرحله ' + fa(w.idx + 1) + ': ' + w.def.name, 2.2);
+    $('hud-progress').classList.toggle('hidden', !!w.endless);
+    $('hud-dist-box').classList.toggle('hidden', !w.endless);
+    if (!w.endless) UI.toast('مرحله ' + fa(w.idx + 1) + ': ' + w.def.name, 2.2);
   };
   UI.toast = function (text, dur) {
     const t = $('toast'); t.textContent = text; t.classList.remove('hidden');
@@ -1906,10 +2195,26 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
     }
     if (c.s !== score) { c.s = score; $('hud-score').textContent = fa(score); }
     if (c.c !== w.coins) { c.c = w.coins; $('hud-coins').textContent = fa(w.coins); }
-    const prog = Math.max(0, Math.min(1, p.x / w.length));
-    if (Math.abs((c.p || 0) - prog) > 0.002) { c.p = prog; $('hud-progress-fill').style.width = (prog * 100) + '%'; $('hud-progress-duck').style.left = (prog * 100) + '%'; }
+    if (w.endless) { const d = w.dist(); if (c.d !== d) { c.d = d; $('hud-dist').textContent = fa(d); } }
+    else {
+      const prog = Math.max(0, Math.min(1, p.x / w.length));
+      if (Math.abs((c.p || 0) - prog) > 0.003) { // transforms only: no layout work per frame
+        c.p = prog; $('hud-progress-fill').style.transform = 'scaleX(' + prog + ')';
+        const bw = c.bw || (c.bw = $('hud-progress').clientWidth); $('hud-progress-duck').style.transform = 'translateX(' + (prog * bw) + 'px)';
+      }
+    }
+    if (c.m !== w.mult) { c.m = w.mult; const el = $('hud-combo'); el.classList.toggle('hidden', w.mult < 2); el.textContent = 'کمبو ×' + fa(w.mult); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+    const pw = (p.shield ? 's' : '') + '|' + Math.ceil(p.pw.magnet) + '|' + Math.ceil(p.pw.x2);
+    if (c.pw !== pw) {
+      c.pw = pw; let h = '';
+      if (p.shield) h += '<span class="pw-chip"><img src="' + UI.preURL('pw_shield') + '" alt="">سپر</span>';
+      if (p.pw.magnet > 0) h += '<span class="pw-chip"><img src="' + UI.preURL('pw_magnet') + '" alt="">' + fa(Math.ceil(p.pw.magnet)) + '</span>';
+      if (p.pw.x2 > 0) h += '<span class="pw-chip"><img src="' + UI.preURL('pw_x2') + '" alt="">' + fa(Math.ceil(p.pw.x2)) + '</span>';
+      $('hud-powers').innerHTML = h;
+    }
     if (w.boss) { const f = w.boss.hp / w.boss.maxHp; if (c.b !== f) { c.b = f; UI.bossBar(true, f); } }
   };
+  UI.preURL = function (k) { UI.pu = UI.pu || {}; return UI.pu[k] || (UI.pu[k] = G.Draw.pre[k].c.toDataURL()); };
   UI.heartURL = function (full) {
     const k = full ? 'h1' : 'h0';
     if (!UI[k]) UI[k] = G.Draw.pre[full ? 'heart' : 'heartEmpty'].c.toDataURL();
@@ -1919,11 +2224,13 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
   UI.result = function (r) {
     UI.last = r;
     const title = $('result-title'), txt = $('result-text');
-    if (r.win && r.final) { title.textContent = 'قهرمان شدی! 🏆'; txt.textContent = 'خرس گنده رو شکست دادی و بازی رو تموم کردی!'; }
+    if (r.endless) { title.textContent = r.record ? 'رکورد جدید! 🎉' : 'دویدن تموم شد!'; txt.textContent = 'مسافت: ' + fa(r.dist) + ' متر — بهترین: ' + fa(r.best) + ' متر'; }
+    else if (r.win && r.final) { title.textContent = 'قهرمان شدی! 🏆'; txt.textContent = 'خرس گنده رو شکست دادی و بازی رو تموم کردی!'; }
     else if (r.win) { title.textContent = 'آفرین! مرحله ' + fa(r.idx + 1) + ' تموم شد'; txt.textContent = 'جایزه قلب‌ها: ' + fa(r.bonus) + ' امتیاز'; }
     else { title.textContent = 'ای وای! 💫'; txt.textContent = (G.game.world.mode === 'arena' ? 'خرس این دفعه برد. دوباره امتحان کن — از نبرد شروع می‌شه!' : G.game.world.checkpoint ? 'دوباره امتحان کن — از نقطه ذخیره ادامه می‌دی!' : 'دوباره امتحان کن، تو می‌تونی!'); }
     $('result-score').textContent = fa(r.score); $('result-coins').textContent = fa(r.coins);
     const nb = $('btn-next'); nb.classList.toggle('hidden', !r.win); nb.textContent = r.final ? 'بازی دوباره از اول' : 'مرحله بعد';
+    $('btn-retry').textContent = r.endless ? 'یک دور دیگه' : 'دوباره';
     UI.drawChar($('result-pic'), r.win && r.final ? 'bear' : 'duck', null, 0.9);
     G.Audio.stopMusic();
     if (r.win && !r.final) G.Audio.play('win');
@@ -1931,6 +2238,7 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
   };
   UI.retry = function () {
     const w = G.game.world; if (!w) return;
+    if (w.endless) { G.game.startEndless(); return; }
     const lost = UI.cur === 'result' && UI.last && !UI.last.win;
     const atArena = w.mode === 'arena' && lost;
     G.game.startLevel(w.idx, { sessionScore: G.game.sessionScore, atArena, startX: lost && !atArena && w.checkpoint ? w.checkpoint : 0 });
@@ -1952,8 +2260,8 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
   /* ---------- shop ---------- */
   UI.buildShop = function () {
     const tabs = $('shop-tabs'); tabs.innerHTML = '';
-    Object.keys(G.CHARS).forEach(ch => {
-      const t = document.createElement('button'); t.className = 'tab' + (ch === UI.shopChar ? ' on' : ''); t.textContent = G.CHARS[ch].name;
+    ['up'].concat(Object.keys(G.CHARS)).forEach(ch => {
+      const t = document.createElement('button'); t.className = 'tab' + (ch === UI.shopChar ? ' on' : '') + (ch === 'up' ? ' up' : ''); t.textContent = ch === 'up' ? '⚡ ارتقاها' : G.CHARS[ch].name;
       t.addEventListener('click', () => { G.Audio.play('click'); UI.shopChar = ch; UI.buildShop(); });
       tabs.appendChild(t);
     });
@@ -1962,6 +2270,8 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
   UI.renderShopGrid = function () {
     const ch = UI.shopChar, s = G.Save.data, grid = $('shop-grid');
     $('shop-coins').textContent = fa(s.wallet);
+    $('screen-shop').classList.toggle('upgrades', ch === 'up');
+    if (ch === 'up') { UI.renderUpgrades(); return; }
     UI.drawChar($('shop-preview'), ch, s.sel[ch], 0.92);
     grid.innerHTML = '';
     G.SKINS.forEach((sk, i) => {
@@ -1976,6 +2286,27 @@ window.ASSET_DATA = {"bear": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASEA
       b.addEventListener('click', () => UI.buySkin(ch, i));
       grid.appendChild(b);
       setTimeout(() => UI.drawChar(cv, ch, i, 0.92), 10 + i * 15); // build variants progressively
+    });
+  };
+  UI.UPGRADES = [
+    { id: 'double', name: 'پرش دوم', desc: 'وسط هوا یک بار دیگه بپر', icon: '⤴', price: 350 },
+    { id: 'heart', name: 'قلب چهارم', desc: 'هر مرحله با ۴ قلب شروع کن', icon: '❤', price: 450 },
+    { id: 'longpw', name: 'پاورآپ طولانی', desc: 'آهنربا و سکه دوبرابر ۵۰٪ بیشتر می‌مونن', icon: '⏳', price: 250 }
+  ];
+  UI.renderUpgrades = function () {
+    const s = G.Save.data, grid = $('shop-grid'); grid.innerHTML = '';
+    UI.UPGRADES.forEach(u => {
+      const owned = !!s.up[u.id];
+      const b = document.createElement('button'); b.className = 'upg' + (owned ? ' sel' : '');
+      b.innerHTML = '<span class="upg-ico">' + u.icon + '</span><b>' + u.name + '</b><span class="upg-desc">' + u.desc + '</span><span class="price">' + (owned ? '✔ فعال' : '🪙 ' + fa(u.price)) + '</span>';
+      b.addEventListener('click', () => {
+        const msg = $('shop-msg');
+        if (owned) { msg.textContent = u.name + ' قبلاً فعال شده.'; return; }
+        if (s.wallet < u.price) { G.Audio.play('nope'); msg.textContent = 'سکه کافی نداری — ' + fa(u.price - s.wallet) + ' سکه دیگه جمع کن!'; return; }
+        s.wallet -= u.price; s.up[u.id] = true; G.Save.save(); G.Audio.play('buy');
+        msg.textContent = u.name + ' فعال شد! 🎉'; UI.renderShopGrid();
+      });
+      grid.appendChild(b);
     });
   };
   UI.buySkin = function (ch, i) {

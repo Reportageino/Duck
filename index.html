@@ -21,6 +21,9 @@
         <div class="hud-box" id="hud-hearts"></div>
         <div class="hud-box"><span class="ico coin-ico"></span><b id="hud-coins">0</b></div>
         <div class="hud-box">امتیاز <b id="hud-score">0</b></div>
+        <div class="hud-box hidden" id="hud-dist-box"><b id="hud-dist">0</b> متر</div>
+        <div class="hud-box combo hidden" id="hud-combo">کمبو ×۲</div>
+        <div id="hud-powers"></div>
         <button class="hud-btn" id="btn-pause" aria-label="توقف">❚❚</button>
       </div>
       <div id="hud-progress"><div id="hud-progress-fill"></div><span id="hud-progress-duck"></span></div>
@@ -33,10 +36,11 @@
       <div class="card menu-card">
         <h1 class="title">اردکِ <span>اسکیت‌باز</span></h1>
         <canvas id="menu-duck" width="240" height="190"></canvas>
-        <div class="menu-stats"><span class="pill">بهترین امتیاز: <b id="menu-best">0</b></span><span class="pill"><span class="ico coin-ico"></span> <b id="menu-coins">0</b></span></div>
+        <div class="menu-stats"><span class="pill">بهترین امتیاز: <b id="menu-best">0</b></span><span class="pill"><span class="ico coin-ico"></span> <b id="menu-coins">0</b></span><span class="pill">رکورد بی‌پایان: <b id="menu-dist">0</b> متر</span></div>
         <div class="btn-col">
           <button class="btn big" id="btn-start">شروع بازی</button>
           <button class="btn" id="btn-levels">انتخاب مرحله</button>
+          <button class="btn endless" id="btn-endless">∞ حالت بی‌پایان</button>
           <button class="btn" id="btn-shop">فروشگاه رنگ‌ها</button>
           <div class="btn-row">
             <button class="btn small" id="btn-help">راهنما</button>
@@ -69,7 +73,10 @@
           <li>روح طلایی‌ِ درخشان مهربان است و تو را به آسمان پرتاب می‌کند.</li>
           <li>سگ مهربان یک قلب به تو می‌دهد.</li>
           <li>خرس: از موج زمینی بپر، از عسل‌ها فرار کن، از روی حمله‌اش بپر و وقتی گیج شد روی سرش فرود بیا!</li>
-          <li>با سکه‌ها در فروشگاه رنگ شخصیت‌ها را عوض کن.</li>
+          <li>پاورآپ‌ها: 🧲 آهنربا سکه‌ها را جذب می‌کند، 🫧 سپر یک ضربه را می‌گیرد، ×۲ سکه‌ها را دوبرابر می‌کند.</li>
+          <li>سکه، پرش روی دشمن و حرکت نمایشی پشت‌سرهم «کمبو» می‌سازد و امتیاز را تا ×۵ زیاد می‌کند. آسیب دیدن کمبو را صفر می‌کند.</li>
+          <li>در حالت بی‌پایان مسیر هر بار تازه ساخته می‌شود و هرچه جلوتر بروی سریع‌تر می‌شود.</li>
+          <li>با سکه‌ها در فروشگاه رنگ شخصیت‌ها را عوض کن یا ارتقا بخر (پرش دوم، قلب چهارم، پاورآپ طولانی).</li>
         </ul>
         <button class="btn" data-back>بازگشت</button>
       </div>
@@ -94,7 +101,7 @@
         <div class="btn-col">
           <button class="btn big" id="btn-resume">ادامه</button>
           <button class="btn" id="btn-restart">شروع دوباره مرحله</button>
-          <button class="btn small" id="btn-sound2">صدا: روشن</button>
+          <div class="btn-row"><button class="btn small" id="btn-sound2">صدا: روشن</button><button class="btn small" id="btn-vibrate">لرزش</button></div>
           <button class="btn" id="btn-quit">منوی اصلی</button>
         </div>
       </div>
